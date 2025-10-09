@@ -1,0 +1,22 @@
+[
+	{
+		"name": "venice_sunset",
+		"url": "/textures/equirectangular/venice_sunset_1k.hdr",
+		"type": "hdr"
+	},
+		{
+		"name": "spruit_sunrise",
+		"url": "/textures/equirectangular/spruit_sunrise_1k.hdr",
+		"type": "hdr"
+	},
+	{
+		"name": "ferrari",
+		"url": "/ferrari.glb",
+		"type": "gltf"
+	},
+	{
+		"name": "racetrack",
+		"url": "/racetrack.glb",
+		"type": "gltf"
+	}
+]

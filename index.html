@@ -7,12 +7,20 @@
 		<title>three-ts-game</title>
 	</head>
 	<style>
+		body {
+			margin: 0;
+		}
 		#loading {
 			position: absolute;
 			top: 50%;
 			left: 50%;
 			transform: translate(-50%, -50%);
-      pointer-events: none;
+			user-select: none;
+		}
+		.canvas {
+			height: 100vh;
+			width: 100vw;
+			position: absolute;
 		}
 	</style>
 	<body>
