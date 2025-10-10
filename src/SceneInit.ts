@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import Stats from "three/examples/jsm/libs/stats.module.js";
 import type { CameraController } from "./CameraController";
-import { resources } from "./main";
 
 export default class SceneInit {
 	private sceneName: string;
@@ -24,7 +23,7 @@ export default class SceneInit {
 		this.sceneName = parameters.sceneName;
 		this.scene.name = this.sceneName;
 
-		this.scene.environment = resources.get("spruit_sunrise");
+		//this.scene.environment = resources.get("spruit_sunrise");
 		if (this.scene.environment) this.scene.environment.mapping = THREE.EquirectangularReflectionMapping;
 		this.scene.fog = new THREE.Fog(0x333333, 10, 1000);
 

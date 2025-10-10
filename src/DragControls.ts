@@ -1,4 +1,4 @@
-import { Camera, Group, Matrix4, Mesh, Plane, Raycaster, Vector2, Vector3, type Object3D } from "three";
+import { Camera, Matrix4,  Plane, Raycaster, Vector2, Vector3, type Object3D } from "three";
 import type { CameraController } from "./CameraController";
 
 interface DragControlsParameters {

@@ -1,22 +1,22 @@
 import * as THREE from "three";
 
 export class CameraController {
-	enabled: boolean = true;
-	camera: THREE.PerspectiveCamera;
-	cameraClone: THREE.PerspectiveCamera;
-	target: THREE.Object3D;
-	offset: THREE.Vector3;
-	lookAtOffset: THREE.Vector3;
-	lerpSpeed: number;
-	yaw: number = Math.PI;
-	pitch: number = -Math.PI / 6;
-	sensitivity: number = 0.005;
-	fpv: boolean = false;
+	public enabled: boolean = true;
+	private camera: THREE.PerspectiveCamera;
+	private cameraClone: THREE.PerspectiveCamera;
+	public target: THREE.Vector3;
+	private offset: THREE.Vector3;
+	private lookAtOffset: THREE.Vector3;
+	private lerpSpeed: number;
+	private yaw: number = Math.PI;
+	private pitch: number = -Math.PI / 6;
+	private sensitivity: number = 0.005;
+	private fpv: boolean = false;
 
-	constructor(camera: THREE.PerspectiveCamera, target: THREE.Object3D) {
+	constructor(camera: THREE.PerspectiveCamera) {
 		this.camera = camera;
 		this.cameraClone = this.camera.clone();
-		this.target = target; // объект, за которым следим
+		this.target = new THREE.Vector3()
 		this.offset = new THREE.Vector3(0, 0, 15); // смещение камеры
 		this.lookAtOffset = new THREE.Vector3(0, 1, 0); // куда смотреть
 		this.lerpSpeed = 0.1;
@@ -69,7 +69,7 @@ export class CameraController {
 
 	update() {
 		const rotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(this.pitch, this.yaw, 0, "YXZ"));
-		const targetPos = this.target.position.clone().add(this.lookAtOffset);
+		const targetPos = this.target.clone().add(this.lookAtOffset);
 		const offset = this.fpv ? new THREE.Vector3(0, 0, 0) : this.offset.clone();
 		const camOffset = targetPos.add(offset.applyQuaternion(rotation));
 		this.camera.position.lerp(camOffset, this.lerpSpeed);

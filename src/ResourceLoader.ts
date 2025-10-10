@@ -40,7 +40,7 @@ export class ResourceLoader {
 
 	/** Загружает все ресурсы из манифеста */
 	async loadAll() {
-		if (!this._manifest.length) throw new Error("Manifest is empty. Call loadManifest() first.");
+		if (!this._manifest.length) console.log("Manifest is empty. Call loadManifest() first.");
 
 		const promises = this._manifest.map((res) => this._loadAndCache(res));
 		await Promise.all(promises);
