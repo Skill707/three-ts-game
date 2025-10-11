@@ -24,6 +24,8 @@ const handleKeyboardEvent = (e: KeyboardEvent) => (keyMap[e.code] = e.type === "
 document.addEventListener("keydown", handleKeyboardEvent);
 document.addEventListener("keyup", handleKeyboardEvent);
 
+export const collisionGroups = ["floor", "car", "steer", "susp", "wheel"];
+
 const world = new RAPIER.World({ x: 0.0, y: -9.81, z: 0.0 });
 world.numSolverIterations = 16;
 
@@ -34,11 +36,12 @@ world.createCollider(RAPIER.ColliderDesc.cuboid(1000.0, 0.1, 1000.0).setTranslat
 
 setupEnvironment(game);
 
-const car = new CarController(world, keyMap, new Vector3(0, 4, 0));
+const car = new CarController(game.scene, world, keyMap, new Vector3(0, 4, 0));
 
-game.controls = new CameraController(game.camera)
+game.controls = new CameraController(game.camera);
 
 const debugLines = new LineSegments(new BufferGeometry(), new LineBasicMaterial({ vertexColors: true }));
+debugLines.name = "DebugLines";
 game.scene.add(debugLines);
 
 function renderRapierDebug(world: RAPIER.World) {
@@ -54,10 +57,10 @@ function renderRapierDebug(world: RAPIER.World) {
 	debugLines.geometry.computeBoundingSphere();
 }
 
-let gameLoop = () => {
+const gameLoop = () => {
 	world.step();
 	renderRapierDebug(world);
-	car.update()
+	car.update();
 	game.controls?.target.copy(car.carBodyPos);
 	setTimeout(gameLoop, 16);
 };

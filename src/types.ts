@@ -1,5 +1,4 @@
-import type { ColliderDesc } from "@dimforge/rapier3d";
-import type { Object3D, Vector3 } from "three";
+import type { Object3D, Quaternion, Vector3 } from "three";
 
 export interface KeyMap {
 	[key: string]: boolean;
@@ -7,12 +6,20 @@ export interface KeyMap {
 
 export interface Part {
 	model: Object3D;
-	collider: ColliderDesc;
+	position: Vector3;
+	rotation: Quaternion;
+}
+
+export interface WheelPart extends Part{
+	maxAngle: number;
+	maxSpeed: number;
+	suspStiffnes: number;
+	suspDamping: number;
+	wheelFriction: number;
 }
 
 export interface CarParts {
 	rootPos: Vector3;
 	main: Part;
-	wheels: Part[];
+	wheels: WheelPart[];
 }
-

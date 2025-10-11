@@ -1,110 +1,100 @@
-import { Object3D, Vector3 } from "three";
-import { RigidBody, ImpulseJoint, World, RigidBodyDesc } from "@dimforge/rapier3d";
+import { Group, Mesh, Quaternion, Scene, Vector2, Vector3 } from "three";
+import { RigidBody, World, RigidBodyDesc, ColliderDesc } from "@dimforge/rapier3d";
 import Suspension from "./Suspension";
 import Wheel from "./Wheel";
 import { getCar } from "./getCar";
-import type { KeyMap } from "./types";
-
-//floor = 0
-//car = 1
-//steer = 2
-//susp = 3
-//wheel = 4
+import type { KeyMap, Part } from "./types";
 
 export default class CarController {
-	dynamicBodies: [Object3D, RigidBody][] = [];
-	carBody: RigidBody;
-	wheelAxels: ImpulseJoint[] = [];
-	wheelSprings: ImpulseJoint[] = [];
-	wheelMotors: ImpulseJoint[] = [];
-	carBodyPos: Vector3;
-	keyMap: { [key: string]: boolean } = {};
+	private dynamicBodies: [Part, RigidBody][] = [];
+	private body: RigidBody;
+	public carBodyPos: Vector3;
+	private keyMap: { [key: string]: boolean } = {};
+	private wheels: Wheel[] = [];
+	private suspensions: Suspension[] = [];
 
-	constructor(world: World, keyMap: KeyMap, position: Vector3 = new Vector3()) {
+	constructor(scene: Scene, world: World, keyMap: KeyMap, position: Vector3 = new Vector3()) {
 		this.keyMap = keyMap;
 
 		//const pos = carParts.rootPos.clone().add(carParts.main.model.position);
-		const carBody = world.createRigidBody(
+		const body = world.createRigidBody(
 			RigidBodyDesc.dynamic()
 				.setTranslation(...position.toArray())
 				.setCanSleep(false)
 		);
-		this.carBody = carBody;
-		this.carBodyPos = new Vector3().copy(carBody.translation());
+		this.body = body;
+		this.carBodyPos = new Vector3().copy(body.translation());
+
+		const objectGroup = new Group();
+		objectGroup.name = "Car";
+		scene.add(objectGroup);
 
 		const carParts = getCar();
 
-		world.createCollider(carParts.main.collider, carBody);
+		objectGroup.add(carParts.main.model);
 		//carParts.main.model.visible = false;
-		//this.dynamicBodies.push([carParts.main.model, carBody]);
 
-		// Suspension
+		const bodyMesh = carParts.main.model.children.find((o) => o.name === "body") as Mesh;
+		const geometry = bodyMesh.geometry;
+		geometry.computeBoundingBox();
+		const box = geometry.boundingBox;
 
-		const susp1 = new Suspension(world, new Vector3(1.2, -0.5, -2).add(position), new Vector3(1, 1, 0.5));
-		const wheel1 = new Wheel(world, new Vector3(2.5, -0.5, -2).add(position));
-		wheel1.attachTo(susp1.wheelHubBody, new Vector3(-0.35, 0, 0));
-		susp1.attachTo(carBody, new Vector3(1.2, -0.5, -2));
+		if (box) {
+			const size = new Vector3(box.max.x, box.max.y, box.max.z);
+			size.applyQuaternion(carParts.main.rotation);
+			const collider = ColliderDesc.cuboid(size.x, size.y, size.z).setCollisionGroups(131073).setMass(1000);
+			world.createCollider(collider, body);
+		}
+		this.dynamicBodies.push([carParts.main, body]);
 
-		const susp2 = new Suspension(world, new Vector3(-1.2, -0.5, -2).add(position), new Vector3(-1, 1, 0.5));
-		const wheel2 = new Wheel(world, new Vector3(-2.5, -0.5, -2).add(position));
-		wheel2.attachTo(susp2.wheelHubBody, new Vector3(0.35, 0, 0));
-		susp2.attachTo(carBody, new Vector3(-1.2, -0.5, -2));
+		// chasis
+		carParts.wheels.forEach((wheelPart) => {
+			// wheel
+			objectGroup.add(wheelPart.model);
+			const bodyMesh = wheelPart.model.children.find((o) => o.name.includes("wheel")) as Mesh;
+			const geometry = bodyMesh.geometry;
+			geometry.computeBoundingBox();
+			const box = geometry.boundingBox;
+			const wheelPos = wheelPart.position.clone().add(position).sub(carParts.main.position);
+			let wheelSize = new Vector2(0.15, 0.36);
+			if (box) wheelSize = new Vector2(box.max.x, box.max.y);
 
-		const susp3 = new Suspension(world, new Vector3(-1.2, -0.5, 2).add(position), new Vector3(-1, 1, 0.5));
-		const wheel3 = new Wheel(world, new Vector3(-2.5, -0.5, 2).add(position));
-		wheel3.attachTo(susp3.wheelHubBody, new Vector3(0.35, 0, 0));
-		susp3.attachTo(carBody, new Vector3(-1.2, -0.5, 2));
+			const wheel = new Wheel(world, wheelPos, wheelSize, 30, wheelPart.maxSpeed);
+			this.wheels.push(wheel);
+			this.dynamicBodies.push([wheelPart, wheel.wheelBody]);
 
-		const susp4 = new Suspension(world, new Vector3(1.2, -0.5, 2).add(position), new Vector3(1, 1, 0.5));
-		const wheel4 = new Wheel(world, new Vector3(2.5, -0.5, 2).add(position));
-		wheel4.attachTo(susp4.wheelHubBody, new Vector3(-0.35, 0, 0));
-		susp4.attachTo(carBody, new Vector3(1.2, -0.5, 2));
+			// Suspension
+			const side = wheelPos.x > 0 ? 1 : -1;
+			const size = new Vector3(0, 0.3, 0.25).setX(0.3 * side);
+			const wheelWidth = (wheelSize.x + 0.02) * side;
+			const suspPos = wheelPos.clone().sub(new Vector3().setX(size.x + wheelWidth));
+			const susp = new Suspension(world, suspPos, size, 30, wheelPart.maxAngle);
+			this.suspensions.push(susp);
+
+			// attachment
+
+			const offset = new Vector3(-wheelWidth, 0, 0);
+			wheel.attachTo(susp.wheelHubBody, offset);
+			const pos = wheelPart.position.clone().sub(carParts.main.position);
+			pos.sub(new Vector3().setX(size.x + wheelWidth))
+			susp.attachTo(body, pos);
+		});
 	}
 
 	update() {
-		this.carBodyPos = new Vector3().copy(this.carBody.translation());
-		/*
+		this.carBodyPos = new Vector3().copy(this.body.translation());
+		this.wheels.forEach((wheel) => wheel.update(this.keyMap));
+		this.suspensions.forEach((suspension) => suspension.update(this.keyMap));
+
 		for (let i = 0, n = this.dynamicBodies.length; i < n; i++) {
 			const translation = this.dynamicBodies[i][1].translation();
 			const rbPos = new Vector3(translation.x, translation.y, translation.z);
-			//rbPos.add(this.carParts.rootPos.clone().negate());
-			this.dynamicBodies[i][0].position.copy(rbPos);
+			this.dynamicBodies[i][0].model.position.copy(rbPos);
 
 			const rotation = this.dynamicBodies[i][1].rotation();
-			const rapierQuat = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
-			const newQuaternion = rapierQuat.clone();
-			if (i === 0) {
-				const fixX = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -Math.PI / 2);
-				const fixY = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), -Math.PI / 2);
-				newQuaternion.multiply(fixY);
-				newQuaternion.multiply(fixX);
-			}
-			this.dynamicBodies[i][0].quaternion.copy(newQuaternion);
+			const rbQuat = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+			rbQuat.multiply(this.dynamicBodies[i][0].rotation.clone());
+			this.dynamicBodies[i][0].model.quaternion.copy(rbQuat);
 		}
-
-		let targetSteer = 0;
-		if (this.keyMap["KeyA"]) {
-			targetSteer += 0.6;
-		}
-		if (this.keyMap["KeyD"]) {
-			targetSteer -= 0.6;
-		}
-
-		this.wheelAxels.forEach((axel, index) => {
-			if (index > 1) (axel as PrismaticImpulseJoint).configureMotorPosition(targetSteer, 10000, 100);
-			else (axel as PrismaticImpulseJoint).configureMotorPosition(0, 10000, 100);
-		});
-
-		let targetVelocity = 0;
-		if (this.keyMap["KeyW"]) {
-			targetVelocity = -5000;
-		}
-		if (this.keyMap["KeyS"]) {
-			targetVelocity = 2000;
-		}
-		this.wheelMotors.forEach((motor) => {
-			(motor as PrismaticImpulseJoint).configureMotorVelocity(targetVelocity, 2.0);
-		});
-		*/
 	}
 }

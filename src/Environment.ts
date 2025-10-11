@@ -5,6 +5,7 @@ import { resources } from "./main";
 
 export function setupEnvironment(game: SceneInit) {
 	const sky = new Sky();
+	sky.name = "Sky";
 	sky.scale.setScalar(450000);
 	const phi = MathUtils.degToRad(75);
 	const theta = MathUtils.degToRad(90);
@@ -24,7 +25,7 @@ export function setupEnvironment(game: SceneInit) {
 	} as Water2Options);
 	water.rotation.x = -Math.PI / 2;
 	water.position.y = -1;
-	water.name = "water";
+	water.name = "Water";
 	game.scene.add(water);
 
     const racetrackGLB = resources.get("racetrack");

@@ -6,6 +6,8 @@ import type { CarParts } from "./types";
 export function getCar() {
 	const ferrari = resources.get("ferrari");
 	const ferrari_model_root = ferrari.scene.children[0];
+	console.log(ferrari_model_root);
+
 	(ferrari_model_root as Object3D).position.set(3, 0, 0);
 	const carModel = (ferrari_model_root as Object3D).clone();
 	carModel.traverse((o) => {
@@ -42,13 +44,11 @@ export function getCar() {
 	(carModel.getObjectByName("trim") as Mesh).material = detailsMaterial;
 	(carModel.getObjectByName("glass") as Mesh).material = glassMaterial;
 
-	carModel.name = "carModel";
-
-	const bodyMesh = carModel.getObjectByName("main") as Object3D;
-	const wheelBLMesh = carModel.getObjectByName("wheel_rl") as Object3D;
-	const wheelBRMesh = carModel.getObjectByName("wheel_rr") as Object3D;
-	const wheelFLMesh = carModel.getObjectByName("wheel_fl") as Object3D;
-	const wheelFRMesh = carModel.getObjectByName("wheel_fr") as Object3D;
+	const body = carModel.getObjectByName("main") as Object3D;
+	const wheelRL = carModel.getObjectByName("wheel_rl") as Object3D;
+	const wheelRR = carModel.getObjectByName("wheel_rr") as Object3D;
+	const wheelFL = carModel.getObjectByName("wheel_fl") as Object3D;
+	const wheelFR = carModel.getObjectByName("wheel_fr") as Object3D;
 	//const steering_wheel = carModel.getObjectByName("steering_wheel") as Object3D;
 
 	const body_geometry = (carModel.getObjectByName("body") as Mesh).geometry;
@@ -63,59 +63,54 @@ export function getCar() {
 		body_collider.setCollisionGroups(131073).setMass(1000).setRotation(newQuaternion);
 	}
 
-	body_collider = null;
-
 	const carParts: CarParts = {
 		rootPos: carModel.position.clone(),
 		main: {
-			model: bodyMesh,
-			collider: body_collider ? body_collider : ColliderDesc.cuboid(1, 0.5, 2.3).setCollisionGroups(131073).setMass(1000),
+			model: body,
+			position: body.position.clone(),
+			rotation: body.quaternion.clone(),
 		},
 		wheels: [
 			{
-				model: wheelBLMesh,
-				collider: ColliderDesc.roundCylinder(0.08, 0.3, 0.06)
-					.setRotation(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -Math.PI / 2))
-					.setRestitution(0)
-					.setFriction(2)
-					.setMass(30)
-					.setCollisionGroups(262145),
+				model: wheelRL,
+				position: wheelRL.position.clone(),
+				rotation: wheelRL.quaternion.clone(),
+				maxAngle: -2,
+				maxSpeed: 2000,
+				suspStiffnes: 20000,
+				suspDamping: 1000,
+				wheelFriction: 10,
 			},
 			{
-				model: wheelBRMesh,
-				collider: ColliderDesc.roundCylinder(0.08, 0.3, 0.06)
-					.setRotation(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -Math.PI / 2))
-					.setRestitution(0)
-					.setFriction(2)
-					.setMass(30)
-					.setCollisionGroups(262145),
+				model: wheelRR,
+				position: wheelRR.position.clone(),
+				rotation: wheelRR.quaternion.clone(),
+				maxAngle: -2,
+				maxSpeed: 2000,
+				suspStiffnes: 20000,
+				suspDamping: 1000,
+				wheelFriction: 10,
 			},
 			{
-				model: wheelFLMesh,
-				collider: ColliderDesc.roundCylinder(0.08, 0.3, 0.06)
-					.setRotation(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -Math.PI / 2))
-					.setRestitution(0)
-					.setFriction(2)
-					.setMass(30)
-					.setCollisionGroups(262145),
+				model: wheelFL,
+				position: wheelFL.position.clone(),
+				rotation: wheelFL.quaternion.clone(),
+				maxAngle: 30,
+				maxSpeed: 0,
+				suspStiffnes: 20000,
+				suspDamping: 1000,
+				wheelFriction: 2,
 			},
 			{
-				model: wheelFRMesh,
-				collider: ColliderDesc.roundCylinder(0.08, 0.3, 0.06)
-					.setRotation(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -Math.PI / 2))
-					.setRestitution(0)
-					.setFriction(2)
-					.setMass(30)
-					.setCollisionGroups(262145),
+				model: wheelFR,
+				position: wheelFR.position.clone(),
+				rotation: wheelFR.quaternion.clone(),
+				maxAngle: 30,
+				maxSpeed: 0,
+				suspStiffnes: 20000,
+				suspDamping: 1000,
+				wheelFriction: 2,
 			},
-			/*{
-			model: steering_wheel,
-			collider: ColliderDesc.roundCylinder(0.01, 0.15, 0.01)
-				.setRestitution(0)
-				.setFriction(2)
-				.setMass(30)
-				.setCollisionGroups(262145),
-		},*/
 		],
 	};
 	return carParts;

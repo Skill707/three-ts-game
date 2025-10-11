@@ -1,13 +1,5 @@
 import { type Intersection, type Group, type Object3D, Vector2, Vector3, BufferGeometry } from "three";
 
-export function clamp(value: number, min = -1, max = 1) {
-	if (value < min) return min;
-	if (value > max) return max;
-	return value;
-}
-
-export const rad2deg = (value: number) => value * (180 / Math.PI);
-export const deg2rad = (value: number) => (value * Math.PI) / 180;
 
 /*interface GroupLog {
   name: string;
