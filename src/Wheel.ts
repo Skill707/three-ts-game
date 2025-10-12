@@ -1,5 +1,6 @@
 import RAPIER, { JointData, PrismaticImpulseJoint, RigidBody } from "@dimforge/rapier3d";
 import { Quaternion, Vector2, Vector3 } from "three";
+import type Keyboard from "./Keyboard";
 const zRot = new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -Math.PI / 2);
 
 export default class Wheel {
@@ -19,7 +20,6 @@ export default class Wheel {
 		this.world = world;
 		this.maxSpeed = maxSpeed;
 
-
 		const wheelCollider = RAPIER.ColliderDesc.roundCylinder(size.x - 0.05, size.y, 0.05)
 			.setCollisionGroups(262145)
 			.setMass(mass * size.x * size.y)
@@ -30,15 +30,16 @@ export default class Wheel {
 	attachTo(body: RigidBody, offset: Vector3) {
 		const jointData = JointData.revolute(new Vector3(0, 0, 0), offset, new Vector3(1, 0, 0));
 		this.motor = this.world.createImpulseJoint(jointData, body, this.wheelBody, false) as PrismaticImpulseJoint;
+		this.motor.configureMotorPosition(0, 100000, 100)
 	}
 
-	update(keyMap: { [key: string]: boolean }) {
+	update(keyboard: Keyboard) {
 		if (this.motor) {
 			let targetVelocity = 0;
-			if (keyMap["KeyW"]) targetVelocity = -this.maxSpeed;
-			if (keyMap["KeyS"]) targetVelocity = this.maxSpeed;
+			if (keyboard.keyMap["KeyW"]) targetVelocity = -this.maxSpeed;
+			if (keyboard.keyMap["KeyS"]) targetVelocity = this.maxSpeed;
 			this.motor.configureMotorVelocity(targetVelocity, 2.0);
-			if (keyMap["Space"]) this.motor.configureMotorPosition(0, 100000, 100);
+			if (keyboard.keyMap["Space"]) this.motor.configureMotorPosition(0, 100000, 100);
 		}
 	}
 }

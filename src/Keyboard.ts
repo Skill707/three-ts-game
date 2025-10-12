@@ -1,10 +1,14 @@
 import type { WebGLRenderer } from "three";
-import type { KeyMap } from "./types";
+
+interface KeyMap {
+	[key: string]: boolean;
+}
 
 export default class Keyboard {
 	keyMap: KeyMap = {};
 
-	constructor(renderer: WebGLRenderer) {
+	constructor(renderer?: WebGLRenderer) {
+		if (!renderer) return;
 		document.addEventListener("pointerlockchange", () => {
 			if (document.pointerLockElement === renderer.domElement) {
 				document.addEventListener("keydown", this.onDocumentKey);
@@ -16,7 +20,12 @@ export default class Keyboard {
 		});
 	}
 
-	onDocumentKey = (e: KeyboardEvent) => {
+	private onDocumentKey = (e: KeyboardEvent) => {
 		this.keyMap[e.code] = e.type === "keydown";
 	};
+
+	spaceDown() {
+		this.keyMap["Space"] = true;
+		return this
+	}
 }

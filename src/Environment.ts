@@ -1,6 +1,7 @@
-import { ColliderDesc, type World } from "@dimforge/rapier3d";
-import { Group, MathUtils,  PlaneGeometry, Scene, Vector3 } from "three";
+import { type World } from "@dimforge/rapier3d";
+import { Group, MathUtils, PlaneGeometry, Scene, Vector3 } from "three";
 import { Sky, Water2, type Water2Options } from "three/examples/jsm/Addons.js";
+import { WorldGenerator } from "./WorldGenerator";
 
 export function setupEnvironment(scene: Scene, world: World) {
 	const environment = new Group();
@@ -27,10 +28,29 @@ export function setupEnvironment(scene: Scene, world: World) {
 		fog: true,
 	} as Water2Options);
 	water.rotation.x = -Math.PI / 2;
-	water.position.y = -1;
+	water.position.y = -5;
 	water.name = "Water";
 	environment.add(water);
 
-	world.createCollider(ColliderDesc.cuboid(1000.0, 0.1, 1000.0).setTranslation(0, 0, 0));
-	
+	const generator = new WorldGenerator(scene, world);
+	generator.createPlain();
+
+	generator.startRoad([0, 0, 0], 0, 10);
+
+	generator.moveTo([0, 1, 10], -5);
+	generator.moveTo([20, -0.5, 20], 0);
+	generator.moveTo([20, 0, 0], 0);
+
+	//generator.moveTo([10, 0, 40]);
+
+	//generator.moveTo([-10, 0, 60]);
+
+	//generator.moveTo([50, 0, 0]);
+
+	//generator.moveTo([0, 0, 0]);
+
+	generator.endRoad();
+
+	generator.addBordersToRoad(generator.roadLeftSide, -1);
+	generator.addBordersToRoad(generator.roadRightSide, 1);
 }

@@ -3,13 +3,13 @@ import type Keyboard from "./Keyboard";
 import Eve from "./Eve";
 
 export default class AnimationController {
-	scene: Scene;
-	wait = false;
-	animationActions: { [key: string]: AnimationAction } = {};
-	activeAction?: AnimationAction;
-	speed = 0;
-	keyboard: Keyboard;
-	model?: Eve;
+	private scene: Scene;
+	private wait = false;
+	readonly animationActions: { [key: string]: AnimationAction } = {};
+	private activeAction?: AnimationAction;
+	public speed = 0;
+	private keyboard: Keyboard;
+	public model?: Eve;
 
 	constructor(scene: Scene, keyboard: Keyboard) {
 		this.scene = scene;
@@ -39,6 +39,9 @@ export default class AnimationController {
 					break;
 				case this.animationActions["pose"]:
 				case this.animationActions["idle"]:
+					this.speed = 0;
+					break;
+				case this.animationActions["drive"]:
 					this.speed = 0;
 					break;
 			}

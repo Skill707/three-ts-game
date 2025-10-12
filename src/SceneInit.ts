@@ -45,7 +45,7 @@ export default function initScene() {
 	scene.add(ambientLight);
 
 	const directionalLight = new DirectionalLight(0xffffff, 1);
-	directionalLight.position.set(0, 1500, 1000);
+	directionalLight.position.set(0, 150, 100);
 	directionalLight.castShadow = true;
 	directionalLight.shadow.camera.top = 2000;
 	directionalLight.shadow.camera.bottom = -2000;
@@ -56,6 +56,7 @@ export default function initScene() {
 	directionalLight.shadow.bias = 0.0001;
 	directionalLight.shadow.mapSize.width = 2048;
 	directionalLight.shadow.mapSize.height = 2048;
+	directionalLight.shadow.camera.far = 1000;
 	scene.add(directionalLight);
 
 	// events

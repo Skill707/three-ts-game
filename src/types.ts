@@ -1,8 +1,5 @@
 import type { Object3D, Quaternion, Vector3 } from "three";
 
-export interface KeyMap {
-	[key: string]: boolean;
-}
 
 export interface Part {
 	model: Object3D;

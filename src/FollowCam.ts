@@ -1,15 +1,17 @@
-import { Object3D, PerspectiveCamera, Scene, WebGLRenderer } from "three";
+import { Object3D, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
+import { clamp } from "three/src/math/MathUtils.js";
 
 export default class FollowCam {
-	camera: PerspectiveCamera;
-	pivot = new Object3D();
-	yaw = new Object3D();
-	pitch = new Object3D();
+	private camera: PerspectiveCamera;
+	public pivot = new Object3D();
+	public yaw = new Object3D();
+	private pitch = new Object3D();
+	public cameraOffset: Vector3 = new Vector3(0, 0.75, 0);
 
 	constructor(scene: Scene, camera: PerspectiveCamera, renderer: WebGLRenderer) {
 		this.camera = camera;
 
-		this.yaw.position.y = 0.75;
+		this.yaw.position.copy(this.cameraOffset);
 
 		document.addEventListener("pointerlockchange", () => {
 			if (document.pointerLockElement === renderer.domElement) {
@@ -22,8 +24,11 @@ export default class FollowCam {
 		});
 
 		scene.add(this.pivot);
+		this.pivot.name = "FollowCam pivot";
 		this.pivot.add(this.yaw);
 		this.yaw.add(this.pitch);
+		this.yaw.name = "FollowCam yaw";
+		this.pitch.name = "FollowCam pitch";
 		this.pitch.add(camera); // adding the perspective camera to the hierarchy
 	}
 
@@ -42,8 +47,11 @@ export default class FollowCam {
 		const v = this.camera.position.z + e.deltaY * 0.005;
 
 		// limit range
-		if (v >= 0.5 && v <= 10) {
+		if (v >= 0 && v <= 10) {
 			this.camera.position.z = v;
+
+			const y = 1.2 - (v / 10) * (1.2 - 0.75); // линейно уменьшается с ростом v
+			this.cameraOffset.setY(clamp(y, 0.75, 1.2));
 		}
 	};
 }

@@ -1,7 +1,7 @@
 import RAPIER, { JointData, MotorModel, PrismaticImpulseJoint, RigidBody, World } from "@dimforge/rapier3d";
 import { Quaternion, Vector3 } from "three";
-import type { KeyMap } from "./types";
 import { degToRad } from "three/src/math/MathUtils.js";
+import type Keyboard from "./Keyboard";
 
 const yAxe = new Vector3(0, 1, 0);
 const zAxe = new Vector3(0, 0, 1);
@@ -122,10 +122,10 @@ export default class Suspension {
 		this.world.createImpulseJoint(suspAttachAndWheelHubSpringJointData, body, this.wheelHubBody, false);
 	}
 
-	update(keyMap: KeyMap) {
+	update(keyboard: Keyboard) {
 		let inpit = 0;
-		if (keyMap["KeyA"]) inpit = -1;
-		if (keyMap["KeyD"]) inpit = 1;
+		if (keyboard.keyMap["KeyA"]) inpit = -1;
+		if (keyboard.keyMap["KeyD"]) inpit = 1;
 
 		this.steerJoint.configureMotorPosition(degToRad(inpit * -this.maxAngle), 10000, 100);
 	}

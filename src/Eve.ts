@@ -10,18 +10,11 @@ export default class Eve extends Group {
 	}
 
 	async init(animationActions: { [key: string]: AnimationAction }) {
-		/*const [eve, idle, run, jump, pose] = await Promise.all([
-      this.glTFLoader.loadAsync('models/eve$@walk_compressed.glb'),
-      this.glTFLoader.loadAsync('models/eve@idle.glb'),
-      this.glTFLoader.loadAsync('models/eve@run.glb'),
-      this.glTFLoader.loadAsync('models/eve@jump.glb'),
-      this.glTFLoader.loadAsync('models/eve@pose.glb'),
-    ])*/
-
 		const eve = resources.get("eveWalk");
 		const idle = resources.get("eveIdle");
 		const run = resources.get("eveRun");
-		const jump = resources.get("eveJump");
+		const jump = resources.get("jump");
+		const drive = resources.get("drive");
 		const pose = resources.get("evePose");
 
 		eve.scene.traverse((m: Mesh) => {
@@ -39,9 +32,10 @@ export default class Eve extends Group {
 		jump.animations[0].tracks = jump.animations[0].tracks.filter(function (e: any) {
 			return !e.name.endsWith(".position");
 		});
-		console.log(jump.animations[0].tracks);
+		//console.log(jump.animations[0].tracks);
 		animationActions["jump"] = this.mixer.clipAction(jump.animations[0]);
 		animationActions["pose"] = this.mixer.clipAction(pose.animations[0]);
+		animationActions["drive"] = this.mixer.clipAction(drive.animations[0]);
 
 		animationActions["idle"].play();
 

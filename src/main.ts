@@ -1,11 +1,11 @@
 import { ResourceLoader } from "./ResourceLoader";
 import { BufferAttribute, BufferGeometry, Clock, LineBasicMaterial, LineSegments, Vector3 } from "three";
-import CarController from "./CarController2";
+import CarController from "./CarController";
 import { setupEnvironment } from "./Environment";
-import type { KeyMap } from "./types";
 import initScene from "./SceneInit";
 import { EventQueue, World } from "@dimforge/rapier3d";
 import Player from "./Player";
+import Keyboard from "./Keyboard";
 //import { JoystickControls } from 'three-joystick';
 
 const loading = document.getElementById("loading");
@@ -19,8 +19,6 @@ resources.onLoad = () => {
 await resources.loadManifest();
 await resources.loadAll();
 loading?.remove();
-
-const keyMap: KeyMap = {};
 
 document.addEventListener(
 	"click",
@@ -39,17 +37,20 @@ const eventQueue = new EventQueue(true);
 
 const { scene, camera, renderer, stats } = initScene();
 
+const keyboard = new Keyboard(renderer);
+
 /*const joystickControls = new JoystickControls(
   camera,
   scene,
 );*/
 
-const player = new Player(scene, camera, renderer, world, new Vector3(0, 4, 0));
+const car = new CarController(scene, world, new Vector3(0, 2, 0));
+const cars: CarController[] = [car];
+
+const player = new Player(scene, camera, renderer, world, keyboard, cars, new Vector3(2, 4, 0));
 await player.init();
 
 setupEnvironment(scene, world);
-
-const car = new CarController(scene, world, keyMap, new Vector3(2, 2, 0));
 
 //const controls = new CameraController(camera);
 

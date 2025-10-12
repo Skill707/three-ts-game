@@ -1,24 +1,4 @@
-import { type Intersection, type Group, type Object3D, Vector2, Vector3, BufferGeometry } from "three";
-
-
-/*interface GroupLog {
-  name: string;
-  children: GroupLog[];
-}
-
-export function logGroup(group: Group): GroupLog {
-	const obj: GroupLog = {
-		name: group.name,
-		children: [],
-	};
-	for (let i = 0; i < group.children.length; i++) {
-		const child = group.children[i];
-		if (child.type === "Group") {
-			obj.children.push(logGroup(child as Group));
-		}
-	}
-	return obj;
-}*/
+import { type Intersection, type Group, type Object3D, Vector2, Vector3 } from "three";
 
 export function findGroup(obj: Object3D, group: Group | null = null): Group | null {
 	if ((obj as Group).isGroup) {
@@ -61,16 +41,3 @@ export function getBasis(object: Object3D) {
 	const forward = new Vector3(0, 0, -1).applyQuaternion(q).normalize();
 	return { right, up, forward };
 }
-
-export const getVertices = (geometry: BufferGeometry) => {
-			if (!geometry) return [[], []];
-
-			// берём все вершины
-			const vertices = geometry.attributes.position.array;
-			const index = geometry.index;
-
-			// если есть индексы (обычно есть у плоскости/куба)
-			const indices = index ? index.array : [];
-
-			return [vertices, indices];
-		};

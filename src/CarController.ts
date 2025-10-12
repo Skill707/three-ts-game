@@ -3,19 +3,18 @@ import { RigidBody, World, RigidBodyDesc, ColliderDesc } from "@dimforge/rapier3
 import Suspension from "./Suspension";
 import Wheel from "./Wheel";
 import { getCar } from "./getCar";
-import type { KeyMap, Part } from "./types";
+import Keyboard from "./Keyboard";
+import type { Part } from "./types";
 
 export default class CarController {
 	private dynamicBodies: [Part, RigidBody][] = [];
-	private body: RigidBody;
+	public body: RigidBody;
 	public carBodyPos: Vector3;
-	private keyMap: { [key: string]: boolean } = {};
 	private wheels: Wheel[] = [];
 	private suspensions: Suspension[] = [];
+	public driverSeatPos: Vector3 = new Vector3(0.3, 0.4, 0);
 
-	constructor(scene: Scene, world: World, keyMap: KeyMap, position: Vector3 = new Vector3()) {
-		this.keyMap = keyMap;
-
+	constructor(scene: Scene, world: World, position: Vector3 = new Vector3()) {
 		//const pos = carParts.rootPos.clone().add(carParts.main.model.position);
 		const body = world.createRigidBody(
 			RigidBodyDesc.dynamic()
@@ -36,15 +35,24 @@ export default class CarController {
 
 		const bodyMesh = carParts.main.model.children.find((o) => o.name === "body") as Mesh;
 		const geometry = bodyMesh.geometry;
-		geometry.computeBoundingBox();
-		const box = geometry.boundingBox;
 
-		if (box) {
-			const size = new Vector3(box.max.x, box.max.y, box.max.z);
-			size.applyQuaternion(carParts.main.rotation);
-			const collider = ColliderDesc.cuboid(size.x, size.y, size.z).setCollisionGroups(131073).setMass(1000);
+		//const collider = geometry.index ? ColliderDesc.trimesh(geometry.attributes.position.array as Float32Array, geometry.index.array as Uint32Array) : null
+		const collider = ColliderDesc.convexHull(geometry.attributes.position.array as Float32Array);
+		if (collider) {
+			collider.setCollisionGroups(131073).setMass(1000);
+			collider.setRotation(carParts.main.rotation.clone());
 			world.createCollider(collider, body);
+		} else {
+			geometry.computeBoundingBox();
+			const box = geometry.boundingBox;
+			if (box) {
+				const size = new Vector3(box.max.x, box.max.y, box.max.z);
+				size.applyQuaternion(carParts.main.rotation);
+				const collider = ColliderDesc.cuboid(size.x, size.y, size.z).setCollisionGroups(131073).setMass(1000);
+				world.createCollider(collider, body);
+			}
 		}
+
 		this.dynamicBodies.push([carParts.main, body]);
 
 		// chasis
@@ -76,16 +84,22 @@ export default class CarController {
 			const offset = new Vector3(-wheelWidth, 0, 0);
 			wheel.attachTo(susp.wheelHubBody, offset);
 			const pos = wheelPart.position.clone().sub(carParts.main.position);
-			pos.sub(new Vector3().setX(size.x + wheelWidth))
+			pos.sub(new Vector3().setX(size.x + wheelWidth));
 			susp.attachTo(body, pos);
 		});
 	}
 
+	drive(keyboard: Keyboard) {
+		this.wheels.forEach((wheel) => wheel.update(keyboard));
+		this.suspensions.forEach((suspension) => suspension.update(keyboard));
+	}
+
+	setBrake() {
+		this.wheels.forEach((wheel) => wheel.update(new Keyboard().spaceDown()));
+	}
+
 	update() {
 		this.carBodyPos = new Vector3().copy(this.body.translation());
-		this.wheels.forEach((wheel) => wheel.update(this.keyMap));
-		this.suspensions.forEach((suspension) => suspension.update(this.keyMap));
-
 		for (let i = 0, n = this.dynamicBodies.length; i < n; i++) {
 			const translation = this.dynamicBodies[i][1].translation();
 			const rbPos = new Vector3(translation.x, translation.y, translation.z);
