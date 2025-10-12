@@ -1,108 +1,72 @@
-import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/Addons.js";
 import Stats from "three/examples/jsm/libs/stats.module.js";
-import type { CameraController } from "./CameraController";
+import {
+	ACESFilmicToneMapping,
+	AmbientLight,
+	DirectionalLight,
+	EquirectangularReflectionMapping,
+	PCFSoftShadowMap,
+	PerspectiveCamera,
+	Scene,
+	WebGLRenderer,
+} from "three";
+import { resources } from "./main";
 
-export default class SceneInit {
-	private sceneName: string;
-	scene: THREE.Scene;
-	fov: number;
-	camera: THREE.PerspectiveCamera;
-	renderer: THREE.WebGLRenderer;
-	nearPlane: number;
-	farPlane: number;
-	clock: THREE.Clock;
-	private stats: Stats | null;
-	controls: OrbitControls | CameraController | null = null;
-	ambientLight: THREE.AmbientLight;
-	directionalLight: THREE.DirectionalLight;
+export default function initScene() {
+	const scene = new Scene();
+	scene.name = "Game";
 
-	constructor(parameters: { sceneName: string; stats?: boolean; camera?: THREE.PerspectiveCamera; orbitControls?: boolean }) {
-		
-		this.scene = new THREE.Scene();
-		this.sceneName = parameters.sceneName;
-		this.scene.name = this.sceneName;
+	scene.environment = resources.get("spruit_sunrise");
+	if (scene.environment) scene.environment.mapping = EquirectangularReflectionMapping;
+	//scene.fog = new Fog(0x333333, 10, 1000);
 
-		//this.scene.environment = resources.get("spruit_sunrise");
-		if (this.scene.environment) this.scene.environment.mapping = THREE.EquirectangularReflectionMapping;
-		this.scene.fog = new THREE.Fog(0x333333, 10, 1000);
+	const camera = new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+	camera.position.z = 5;
 
-		this.fov = 45;
-		this.nearPlane = 0.1;
-		this.farPlane = 1000;
-		this.camera = parameters.camera
-			? parameters.camera
-			: new THREE.PerspectiveCamera(this.fov, window.innerWidth / window.innerHeight, this.nearPlane, this.farPlane);
-		if (this.camera) this.camera.position.z = 5;
+	const stats = new Stats();
+	document.body.appendChild(stats.dom);
 
-		this.renderer = new THREE.WebGLRenderer({
-			antialias: true,
-			alpha: true,
-		});
-		this.renderer.setSize(window.innerWidth, window.innerHeight);
-		this.renderer.setPixelRatio(window.devicePixelRatio);
-		this.renderer.shadowMap.enabled = true;
-		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-		this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-		this.renderer.toneMappingExposure = 0.85;
+	const renderer = new WebGLRenderer({
+		antialias: true,
+		alpha: true,
+	});
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setPixelRatio(window.devicePixelRatio);
+	renderer.shadowMap.enabled = true;
+	renderer.shadowMap.type = PCFSoftShadowMap;
+	renderer.toneMapping = ACESFilmicToneMapping;
+	renderer.toneMappingExposure = 0.85;
 
-		const canvas = this.renderer.domElement;
-		canvas.id = this.sceneName;
-		canvas.className = "canvas";
-		document.body.appendChild(canvas);
+	const canvas = renderer.domElement;
+	canvas.id = "Game";
+	canvas.className = "canvas";
+	document.body.appendChild(canvas);
 
-		this.clock = new THREE.Clock();
-		this.stats = parameters.stats ? new Stats() : null;
-		if (this.stats) document.body.appendChild(this.stats.dom);
+	const ambientLight = new AmbientLight(0xffffff, 0.5);
+	scene.add(ambientLight);
 
-		this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-		this.scene.add(this.ambientLight);
+	const directionalLight = new DirectionalLight(0xffffff, 1);
+	directionalLight.position.set(0, 1500, 1000);
+	directionalLight.castShadow = true;
+	directionalLight.shadow.camera.top = 2000;
+	directionalLight.shadow.camera.bottom = -2000;
+	directionalLight.shadow.camera.left = -2000;
+	directionalLight.shadow.camera.right = 2000;
+	directionalLight.shadow.camera.near = 1200;
+	directionalLight.shadow.camera.far = 2500;
+	directionalLight.shadow.bias = 0.0001;
+	directionalLight.shadow.mapSize.width = 2048;
+	directionalLight.shadow.mapSize.height = 2048;
+	scene.add(directionalLight);
 
-		this.directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-		this.directionalLight.position.set(0, 1500, 1000);
-		this.directionalLight.castShadow = true;
-		this.directionalLight.shadow.camera.top = 2000;
-		this.directionalLight.shadow.camera.bottom = -2000;
-		this.directionalLight.shadow.camera.left = -2000;
-		this.directionalLight.shadow.camera.right = 2000;
-		this.directionalLight.shadow.camera.near = 1200;
-		this.directionalLight.shadow.camera.far = 2500;
-		this.directionalLight.shadow.bias = 0.0001;
-		this.directionalLight.shadow.mapSize.width = 2048;
-		this.directionalLight.shadow.mapSize.height = 2048;
-		this.scene.add(this.directionalLight);
+	// events
 
-		// events
-		window.addEventListener("resize", () => this.onWindowResize(), false);
-
-		this.renderer.setAnimationLoop(this.animate);
+	function onWindowResize() {
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize(window.innerWidth, window.innerHeight);
 	}
 
+	window.addEventListener("resize", () => onWindowResize(), false);
 
-	private animate = () => {
-		this.render();
-		if (this.stats) this.stats.update();
-		if (this.controls) this.controls.update();
-	};
-
-	private render() {
-		this.renderer.render(this.scene, this.camera);
-	}
-
-	private onWindowResize() {
-		this.camera.aspect = window.innerWidth / window.innerHeight;
-		this.camera.updateProjectionMatrix();
-		this.renderer.setSize(window.innerWidth, window.innerHeight);
-	}
-
-	public dispose() {
-		this.scene.name = "deleted" + this.scene.name;
-		this.camera.clear();
-		this.ambientLight.dispose();
-		this.scene.clear();
-		this.directionalLight.dispose();
-		this.scene.removeFromParent();
-		this.renderer.setAnimationLoop(null);
-		this.renderer.dispose();
-	}
+	return { scene, camera, renderer, stats };
 }

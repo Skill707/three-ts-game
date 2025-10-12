@@ -1,11 +1,12 @@
-import SceneInit from "./SceneInit";
 import { ResourceLoader } from "./ResourceLoader";
-import RAPIER from "@dimforge/rapier3d";
-import { BufferAttribute, BufferGeometry, Color, LineBasicMaterial, LineSegments, Vector3 } from "three";
+import { BufferAttribute, BufferGeometry, Clock, LineBasicMaterial, LineSegments, Vector3 } from "three";
 import CarController from "./CarController2";
 import { setupEnvironment } from "./Environment";
 import type { KeyMap } from "./types";
-import { CameraController } from "./CameraController";
+import initScene from "./SceneInit";
+import { EventQueue, World } from "@dimforge/rapier3d";
+import Player from "./Player";
+//import { JoystickControls } from 'three-joystick';
 
 const loading = document.getElementById("loading");
 export const resources = new ResourceLoader();
@@ -20,31 +21,43 @@ await resources.loadAll();
 loading?.remove();
 
 const keyMap: KeyMap = {};
-const handleKeyboardEvent = (e: KeyboardEvent) => (keyMap[e.code] = e.type === "keydown");
-document.addEventListener("keydown", handleKeyboardEvent);
-document.addEventListener("keyup", handleKeyboardEvent);
+
+document.addEventListener(
+	"click",
+	() => {
+		renderer.domElement.requestPointerLock();
+	},
+	false
+);
 
 export const collisionGroups = ["floor", "car", "steer", "susp", "wheel"];
 
-const world = new RAPIER.World({ x: 0.0, y: -9.81, z: 0.0 });
+const world = new World({ x: 0.0, y: -9.81, z: 0.0 });
 world.numSolverIterations = 16;
 
-const game = new SceneInit({ sceneName: "game", stats: true });
-game.scene.background = new Color(0x333333);
+const eventQueue = new EventQueue(true);
 
-world.createCollider(RAPIER.ColliderDesc.cuboid(1000.0, 0.1, 1000.0).setTranslation(0, 0, 0));
+const { scene, camera, renderer, stats } = initScene();
 
-setupEnvironment(game);
+/*const joystickControls = new JoystickControls(
+  camera,
+  scene,
+);*/
 
-const car = new CarController(game.scene, world, keyMap, new Vector3(0, 4, 0));
+const player = new Player(scene, camera, renderer, world, new Vector3(0, 4, 0));
+await player.init();
 
-game.controls = new CameraController(game.camera);
+setupEnvironment(scene, world);
+
+const car = new CarController(scene, world, keyMap, new Vector3(2, 2, 0));
+
+//const controls = new CameraController(camera);
 
 const debugLines = new LineSegments(new BufferGeometry(), new LineBasicMaterial({ vertexColors: true }));
 debugLines.name = "DebugLines";
-game.scene.add(debugLines);
+scene.add(debugLines);
 
-function renderRapierDebug(world: RAPIER.World) {
+function renderRapierDebug(world: World) {
 	const { vertices, colors } = world.debugRender();
 	const positions = new Float32Array(vertices.length);
 	const colorArray = new Float32Array(colors.length);
@@ -57,12 +70,36 @@ function renderRapierDebug(world: RAPIER.World) {
 	debugLines.geometry.computeBoundingSphere();
 }
 
+const clock = new Clock();
+
 const gameLoop = () => {
-	world.step();
-	renderRapierDebug(world);
+	const delta = clock.getDelta();
+
+	world.timestep = Math.min(delta, 0.1);
+	world.step(eventQueue);
+
+	eventQueue.drainCollisionEvents((_handle1, _handle2, started) => {
+		//console.log(handle1, handle2, started);
+		if (started) player.setGrounded();
+	});
+
+	eventQueue.drainContactForceEvents((_event) => {
+		//let handle1 = event.collider1(); // Handle of the first collider involved in the event.
+		//let handle2 = event.collider2(); // Handle of the second collider involved in the event.
+	});
+
 	car.update();
-	game.controls?.target.copy(car.carBodyPos);
-	setTimeout(gameLoop, 16);
+
+	//controls.target.copy(car.carBodyPos);
+	//controls.update();
+
+	player.update(delta);
+
+	renderRapierDebug(world);
+
+	renderer.render(scene, camera);
+
+	stats.update();
 };
 
-gameLoop();
+renderer.setAnimationLoop(gameLoop);

@@ -1,9 +1,12 @@
-import { MathUtils, Object3D, PlaneGeometry, Vector3 } from "three";
+import { ColliderDesc, type World } from "@dimforge/rapier3d";
+import { Group, MathUtils,  PlaneGeometry, Scene, Vector3 } from "three";
 import { Sky, Water2, type Water2Options } from "three/examples/jsm/Addons.js";
-import type SceneInit from "./SceneInit";
-import { resources } from "./main";
 
-export function setupEnvironment(game: SceneInit) {
+export function setupEnvironment(scene: Scene, world: World) {
+	const environment = new Group();
+	environment.name = "Environment";
+	scene.add(environment);
+
 	const sky = new Sky();
 	sky.name = "Sky";
 	sky.scale.setScalar(450000);
@@ -11,8 +14,8 @@ export function setupEnvironment(game: SceneInit) {
 	const theta = MathUtils.degToRad(90);
 	const sunPosition = new Vector3().setFromSphericalCoords(1, phi, theta);
 	sky.material.uniforms.sunPosition.value = sunPosition;
-	game.scene.add(sky);
-	game.directionalLight.position.copy(sunPosition);
+	environment.add(sky);
+	//directionalLight.position.copy(sunPosition);
 
 	const water = new Water2(new PlaneGeometry(1000, 1000), {
 		textureWidth: 512,
@@ -26,15 +29,8 @@ export function setupEnvironment(game: SceneInit) {
 	water.rotation.x = -Math.PI / 2;
 	water.position.y = -1;
 	water.name = "Water";
-	game.scene.add(water);
+	environment.add(water);
 
-    const racetrackGLB = resources.get("racetrack");
-    const racetrack = racetrackGLB.scene.children[0];
-    racetrack.name = "racetrack";
-    game.scene.add(racetrack);
-    (racetrack as Object3D).traverse((o) => {
-        o.castShadow = true;
-        o.receiveShadow = true;
-    });
-    
+	world.createCollider(ColliderDesc.cuboid(1000.0, 0.1, 1000.0).setTranslation(0, 0, 0));
+	
 }

@@ -4,7 +4,7 @@
 		"url": "/textures/equirectangular/venice_sunset_1k.hdr",
 		"type": "hdr"
 	},
-		{
+	{
 		"name": "spruit_sunrise",
 		"url": "/textures/equirectangular/spruit_sunrise_1k.hdr",
 		"type": "hdr"
@@ -15,8 +15,28 @@
 		"type": "gltf"
 	},
 	{
-		"name": "racetrack",
-		"url": "/racetrack.glb",
+		"name": "eveWalk",
+		"url": "/eve$@walk.glb",
+		"type": "gltf"
+	},
+	{
+		"name": "eveRun",
+		"url": "/eve@run.glb",
+		"type": "gltf"
+	},
+	{
+		"name": "eveIdle",
+		"url": "/eve@idle.glb",
+		"type": "gltf"
+	},
+	{
+		"name": "eveJump",
+		"url": "/eve@jump.glb",
+		"type": "gltf"
+	},
+	{
+		"name": "evePose",
+		"url": "/eve@pose.glb",
 		"type": "gltf"
 	}
 ]

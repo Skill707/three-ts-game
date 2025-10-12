@@ -4,7 +4,7 @@ import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js"
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { HDRLoader } from "three/examples/jsm/Addons.js";
 
-type ResourceType = "gltf" | "texture" | "json" | "custom"| "hdr";
+type ResourceType = "gltf" | "texture" | "json" | "custom" | "hdr";
 
 interface ManifestItem {
 	name: string;
@@ -108,6 +108,7 @@ export class ResourceLoader {
 		const loader = new GLTFLoader(this._manager);
 		const dracoLoader = new DRACOLoader();
 		dracoLoader.setDecoderPath("https://unpkg.com/three@0.180.0/examples/jsm/libs/draco/gltf/");
+		//dracoLoader.setDecoderPath("three/examples/jsm/libs/draco/gltf");
 		loader.setDRACOLoader(dracoLoader);
 
 		return new Promise((resolve, reject) => {

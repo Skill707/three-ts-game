@@ -6,7 +6,6 @@ import type { CarParts } from "./types";
 export function getCar() {
 	const ferrari = resources.get("ferrari");
 	const ferrari_model_root = ferrari.scene.children[0];
-	console.log(ferrari_model_root);
 
 	(ferrari_model_root as Object3D).position.set(3, 0, 0);
 	const carModel = (ferrari_model_root as Object3D).clone();
