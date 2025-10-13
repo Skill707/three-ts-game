@@ -14,8 +14,8 @@ import {
 	type Side,
 	type Vector3Tuple,
 } from "three";
-import { resources } from "./main";
 import { degToRad } from "three/src/math/MathUtils.js";
+import { resources } from "../main";
 
 interface Road {
 	collider: Collider;
@@ -39,6 +39,7 @@ export class WorldGenerator {
 	private lastRoadPosition: Vector3 = new Vector3();
 	public roadLeftSide: Vector3[] = [];
 	public roadRightSide: Vector3[] = [];
+	private roadCircle: boolean = false;
 
 	constructor(scene: Scene, world: World) {
 		this.currentGenerationType = "none";
@@ -92,6 +93,7 @@ export class WorldGenerator {
 		this.roadAngles = [];
 		this.roadLeftSide = [];
 		this.roadRightSide = [];
+		this.roadCircle = false;
 		this.roadPositions.push(this.lastRoadPosition.clone());
 		this.roadAngles.push(angle);
 	}
@@ -104,7 +106,12 @@ export class WorldGenerator {
 		}
 	}
 
+	endCircle() {
+		this.roadCircle = true;
+	}
+
 	endRoad() {
+		/*
 		const geometry = new BufferGeometry();
 		geometry.name = "Road" + this.roadNextID++;
 
@@ -116,6 +123,8 @@ export class WorldGenerator {
 		let prevTR: Vector3 | null = null;
 
 		for (let i = 0; i < this.roadPositions.length - 1; i++) {
+
+			
 			const pos0 = this.roadPositions[i];
 			const pos1 = this.roadPositions[i + 1];
 
@@ -146,14 +155,16 @@ export class WorldGenerator {
 
 		geometry.setFromPoints(points);
 		geometry.setIndex(indices);
+*/
+		const geometry = buildRoadGeometry(this.roadPositions, this.roadWidth, this.roadAngles, this.roadCircle);
+		geometry.name = "Road" + this.roadNextID++;
 
 		const texture = (resources.get("asphalt") as Texture).clone();
-
 		/*texture.wrapS = texture.wrapT = RepeatWrapping;
 		texture.repeat.set(100, 100);
 		texture.wrapS = texture.wrapT = RepeatWrapping;
 		texture.repeat.set(100, 100);*/
-		const materialParameters: MeshStandardMaterialParameters = { map: texture, side: 0 };
+		const materialParameters: MeshStandardMaterialParameters = { map: texture, side: 2 };
 		this.create(geometry, materialParameters);
 		this.currentGenerationType = "none";
 	}
@@ -203,4 +214,91 @@ export class WorldGenerator {
 		const materialParameters: MeshStandardMaterialParameters = { map: texture, side: side as Side };
 		this.create(geometry, materialParameters);
 	}
+}
+
+function buildRoadGeometry(roadPositions: Vector3[], roadWidth: number, roadAngles: number[], closed: boolean) {
+	const half = roadWidth / 2;
+	const N = roadPositions.length;
+	if (N < 2) return new BufferGeometry();
+
+	const lefts: Vector3[] = [];
+	const rights: Vector3[] = [];
+	const eps = 1e-6;
+
+	// предварительно вычисляем направления сегментов
+	const dirs: Vector3[] = [];
+	for (let i = 0; i < N; i++) {
+		const nextIdx = (i + 1) % N;
+		const dir = new Vector3().subVectors(roadPositions[nextIdx], roadPositions[i]).setY(0).normalize();
+		dirs.push(dir);
+	}
+
+	for (let i = 0; i < N; i++) {
+		const prevDir = dirs[(i - 1 + N) % N];
+		const nextDir = dirs[i];
+
+		// если дорога не замкнута
+		if (!closed) {
+			if (i === 0) prevDir.copy(nextDir);
+			if (i === N - 1) nextDir.copy(prevDir);
+		}
+
+		// усреднение направлений (биссектриса)
+		const normalPrev = new Vector3(-prevDir.z, 0, prevDir.x);
+		const normalNext = new Vector3(-nextDir.z, 0, nextDir.x);
+
+		const miter = new Vector3().addVectors(normalPrev, normalNext);
+		if (miter.lengthSq() < eps) miter.copy(normalNext);
+		miter.normalize();
+
+		// масштаб митера
+		let denom = miter.dot(normalNext);
+		if (Math.abs(denom) < eps) denom = eps;
+		let scale = half / denom;
+		scale = Math.min(scale, half * 3); // ограничение для острых углов
+
+		const p = roadPositions[i];
+		const left = new Vector3().copy(p).addScaledVector(miter, -scale);
+		const right = new Vector3().copy(p).addScaledVector(miter, scale);
+
+		// наклон
+		const tiltM = new Matrix4().makeRotationZ(degToRad(roadAngles[i] || 0));
+		left.applyMatrix4(tiltM);
+		right.applyMatrix4(tiltM);
+
+		lefts.push(left);
+		rights.push(right);
+	}
+
+	// ЖЁСТКО СВЯЗЫВАЕМ начало и конец, если дорога замкнута
+	if (closed) {
+		lefts[lefts.length - 1] = lefts[0].clone();
+		rights[rights.length - 1] = rights[0].clone();
+	}
+
+	// построение сегментов
+	const points: Vector3[] = [];
+	const indices: number[] = [];
+	let vc = 0;
+	const end = closed ? N : N - 1;
+
+	for (let i = 0; i < end; i++) {
+		const a = i;
+		const b = (i + 1) % N;
+
+		const l0 = lefts[a];
+		const r0 = rights[a];
+		const l1 = lefts[b];
+		const r1 = rights[b];
+
+		points.push(l1.clone(), r1.clone(), r0.clone(), l0.clone());
+		indices.push(vc, vc + 1, vc + 2, vc, vc + 2, vc + 3);
+		vc += 4;
+	}
+
+	const geom = new BufferGeometry();
+	geom.setFromPoints(points);
+	geom.setIndex(indices);
+	geom.computeVertexNormals();
+	return geom;
 }

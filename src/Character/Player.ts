@@ -1,9 +1,9 @@
 import { Euler, Matrix4, Object3D, PerspectiveCamera, Quaternion, Vector3, WebGLRenderer, type Scene } from "three";
-import Keyboard from "./Keyboard";
+import Keyboard from "../Keyboard";
 import AnimationController from "./AnimationController";
 import FollowCam from "./FollowCam";
 import { ActiveEvents, Collider, ColliderDesc, ImpulseJoint, JointData, RigidBodyDesc, type RigidBody, type World } from "@dimforge/rapier3d";
-import type CarController from "./CarController";
+import type CarController from "../Vehicle/CarController";
 
 export default class Player {
 	private scene: Scene;
@@ -27,19 +27,11 @@ export default class Player {
 	private cars: CarController[];
 	private seatJoint?: ImpulseJoint | null;
 
-	constructor(
-		scene: Scene,
-		camera: PerspectiveCamera,
-		renderer: WebGLRenderer,
-		world: World,
-		keyBoard: Keyboard,
-		cars: CarController[],
-		position: Vector3 = new Vector3()
-	) {
+	constructor(scene: Scene, camera: PerspectiveCamera, renderer: WebGLRenderer, world: World, cars: CarController[], position: Vector3 = new Vector3()) {
 		this.scene = scene;
 		this.world = world;
 		this.cars = cars;
-		this.keyboard = keyBoard;
+		this.keyboard = new Keyboard(renderer);
 		this.followCam = new FollowCam(this.scene, camera, renderer);
 
 		this.followTarget.name = "followTarget";
@@ -190,7 +182,7 @@ export default class Player {
 			this.followTarget.position.copy(this.body.translation()); // Copy the capsules position to followTarget
 			this.followTarget.getWorldPosition(this.vector); // Put followTargets new world position into a vector
 			this.followCam.pivot.position.lerp(this.vector, delta * 10); // lerp the followCam pivot towards the vector
-			this.followCam.yaw.position.lerp(this.followCam.cameraOffset, delta * 10); // just update
+			this.followCam.yaw.position.lerp(this.followCam.cameraOffset.clone().applyQuaternion(this.followCam.yaw.quaternion), delta * 10); // just update
 
 			// Eve model also lerps towards the capsules position, but independently of the followCam
 			this.animationController?.model?.position.lerp(this.vector, delta * 20);

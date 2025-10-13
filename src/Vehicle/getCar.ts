@@ -1,14 +1,15 @@
 import { ColliderDesc } from "@dimforge/rapier3d";
 import { Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Object3D, Quaternion, Vector3 } from "three";
-import { resources } from "./main";
-import type { CarParts } from "./types";
+import { resources } from "../main";
+import type { CarParts } from "../types";
 
-export function getCar() {
-	const ferrari = resources.get("ferrari");
-	const ferrari_model_root = ferrari.scene.children[0];
+export function getCar(name: string) {
+	const gltf = resources.get(name);
+	const model_root = gltf.scene.children[0];
 
-	(ferrari_model_root as Object3D).position.set(3, 0, 0);
-	const carModel = (ferrari_model_root as Object3D).clone();
+	console.log(model_root);
+	const carModel = (model_root as Object3D).clone();
+
 	carModel.traverse((o) => {
 		o.castShadow = true;
 		o.receiveShadow = true;

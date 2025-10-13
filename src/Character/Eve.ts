@@ -1,5 +1,5 @@
 import { AnimationAction, AnimationMixer, AnimationUtils, Group, Mesh } from "three";
-import { resources } from "./main";
+import { resources } from "../main";
 
 export default class Eve extends Group {
 	mixer?: AnimationMixer;

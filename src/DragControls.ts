@@ -1,12 +1,10 @@
-import { Camera, Matrix4,  Plane, Raycaster, Vector2, Vector3, type Object3D } from "three";
-import type { CameraController } from "./CameraController";
+import { Camera, Matrix4, Plane, Raycaster, Vector2, Vector3, type Object3D } from "three";
 
 interface DragControlsParameters {
 	objects: Object3D[];
 	camera: Camera;
 	domElement: HTMLCanvasElement;
 	//dragEvents: DragEvents;
-	cameraController: CameraController;
 }
 
 function updatePointer(event: PointerEvent, domElement: HTMLElement, offset?: Vector2): Vector2 {
@@ -16,8 +14,6 @@ function updatePointer(event: PointerEvent, domElement: HTMLElement, offset?: Ve
 	pointer.y = (-(event.clientY + (offset ? offset.y : 0) - rect.top) / rect.height) * 2 + 1;
 	return pointer;
 }
-
-
 
 /*interface DragEvents {
 	onDragStart: (part: Part) => void;
@@ -37,7 +33,6 @@ export default class DragControls {
 	private camera: Camera;
 	private domElement: HTMLElement;
 	private raycaster: Raycaster = new Raycaster();
-	cameraController: CameraController;
 
 	public selectedPart: Object3D | null = null;
 	/*public dragEvents: DragEvents = {
@@ -52,7 +47,6 @@ export default class DragControls {
 		this.camera = parameters.camera;
 		this.domElement = parameters.domElement;
 		//this.dragEvents = parameters.dragEvents;
-		this.cameraController = parameters.cameraController;
 
 		//this.raycaster.layers.disableAll();
 		this.raycaster.far = 100;
@@ -85,10 +79,9 @@ export default class DragControls {
 
 		const intersections = this.raycaster.intersectObjects(this.objects);
 
-		if (intersections.length > 0) this.selectedPart = intersections[0].object
+		if (intersections.length > 0) this.selectedPart = intersections[0].object;
 
 		if (this.selectedPart) {
-
 			_plane.setFromNormalAndCoplanarPoint(
 				this.camera.getWorldDirection(_plane.normal),
 				_worldPosition.setFromMatrixPosition(this.selectedPart.matrixWorld)
@@ -102,7 +95,6 @@ export default class DragControls {
 				}
 			}
 			//this.dragEvents.onDragStart(this.selectedPart);
-			this.cameraController.enabled = false;
 		}
 	};
 
@@ -110,7 +102,6 @@ export default class DragControls {
 		//if (this.selectedPart) this.dragEvents.onDragEnd(this.selectedPart.userData as Part);
 		this.selectedPart = null;
 		this.domElement.style.cursor = "auto";
-		this.cameraController.enabled = true;
 	};
 
 	private onContextMenu = (event: MouseEvent) => {

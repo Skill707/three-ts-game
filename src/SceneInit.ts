@@ -20,6 +20,7 @@ export default function initScene() {
 	//scene.fog = new Fog(0x333333, 10, 1000);
 
 	const camera = new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+	camera.layers.enable(8);
 	camera.position.z = 5;
 
 	const stats = new Stats();
@@ -37,7 +38,6 @@ export default function initScene() {
 	renderer.toneMappingExposure = 0.85;
 
 	const canvas = renderer.domElement;
-	canvas.id = "Game";
 	canvas.className = "canvas";
 	document.body.appendChild(canvas);
 

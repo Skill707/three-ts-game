@@ -1,10 +1,13 @@
 import { Group, Mesh, Quaternion, Scene, Vector2, Vector3 } from "three";
 import { RigidBody, World, RigidBodyDesc, ColliderDesc } from "@dimforge/rapier3d";
-import Suspension from "./Suspension";
 import Wheel from "./Wheel";
+import Suspension from "./Suspension";
+import type { Part } from "../types";
 import { getCar } from "./getCar";
-import Keyboard from "./Keyboard";
-import type { Part } from "./types";
+import Keyboard from "../Keyboard";
+import Engine from "./Engine";
+import Steer from "./Steer";
+import Transmission from "./Transmission";
 
 export default class CarController {
 	private dynamicBodies: [Part, RigidBody][] = [];
@@ -13,8 +16,11 @@ export default class CarController {
 	private wheels: Wheel[] = [];
 	private suspensions: Suspension[] = [];
 	public driverSeatPos: Vector3 = new Vector3(0.3, 0.4, 0);
+	private engine: Engine = new Engine();
+	private transmission: Transmission = new Transmission();
+	private steer: Steer = new Steer();
 
-	constructor(scene: Scene, world: World, position: Vector3 = new Vector3()) {
+	constructor(scene: Scene, world: World, name: string, position: Vector3 = new Vector3()) {
 		//const pos = carParts.rootPos.clone().add(carParts.main.model.position);
 		const body = world.createRigidBody(
 			RigidBodyDesc.dynamic()
@@ -25,10 +31,10 @@ export default class CarController {
 		this.carBodyPos = new Vector3().copy(body.translation());
 
 		const objectGroup = new Group();
-		objectGroup.name = "Car";
+		objectGroup.name = "Car" + name;
 		scene.add(objectGroup);
 
-		const carParts = getCar();
+		const carParts = getCar(name);
 
 		objectGroup.add(carParts.main.model);
 		//carParts.main.model.visible = false;
@@ -67,7 +73,7 @@ export default class CarController {
 			let wheelSize = new Vector2(0.15, 0.36);
 			if (box) wheelSize = new Vector2(box.max.x, box.max.y);
 
-			const wheel = new Wheel(world, wheelPos, wheelSize, 30, wheelPart.maxSpeed);
+			const wheel = new Wheel(world, wheelPos, wheelSize, 30);
 			this.wheels.push(wheel);
 			this.dynamicBodies.push([wheelPart, wheel.wheelBody]);
 
@@ -90,15 +96,23 @@ export default class CarController {
 	}
 
 	drive(keyboard: Keyboard) {
-		this.wheels.forEach((wheel) => wheel.update(keyboard));
-		this.suspensions.forEach((suspension) => suspension.update(keyboard));
+		this.engine.drive(keyboard);
+		this.steer.drive(keyboard);
+		this.transmission.drive(keyboard);
 	}
 
 	setBrake() {
-		this.wheels.forEach((wheel) => wheel.update(new Keyboard().spaceDown()));
+		this.wheels.forEach((wheel) => wheel.update(0, 0));
 	}
 
-	update() {
+	update(delta: number) {
+		this.engine.update(delta);
+		this.steer.update(delta);
+		this.transmission.inputRPM = this.engine.outputRPM;
+		this.transmission.update();
+		this.wheels.forEach((wheel) => wheel.update(this.transmission.outputRPM, delta));
+		this.suspensions.forEach((suspension) => suspension.update(this.steer.input, delta));
+
 		this.carBodyPos = new Vector3().copy(this.body.translation());
 		for (let i = 0, n = this.dynamicBodies.length; i < n; i++) {
 			const translation = this.dynamicBodies[i][1].translation();

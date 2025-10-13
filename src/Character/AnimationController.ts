@@ -1,5 +1,5 @@
 import type { AnimationAction, Scene } from "three";
-import type Keyboard from "./Keyboard";
+import type Keyboard from "../Keyboard";
 import Eve from "./Eve";
 
 export default class AnimationController {

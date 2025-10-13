@@ -1,11 +1,11 @@
 import { ResourceLoader } from "./ResourceLoader";
 import { BufferAttribute, BufferGeometry, Clock, LineBasicMaterial, LineSegments, Vector3 } from "three";
-import CarController from "./CarController";
-import { setupEnvironment } from "./Environment";
 import initScene from "./SceneInit";
 import { EventQueue, World } from "@dimforge/rapier3d";
-import Player from "./Player";
-import Keyboard from "./Keyboard";
+import Player from "./Character/Player";
+import CarController from "./Vehicle/CarController";
+import { setupEnvironment } from "./Environment/Environment";
+import PartsList, { Part } from "./Parts/PartsList";
 //import { JoystickControls } from 'three-joystick';
 
 const loading = document.getElementById("loading");
@@ -30,29 +30,29 @@ document.addEventListener(
 
 export const collisionGroups = ["floor", "car", "steer", "susp", "wheel"];
 
-const world = new World({ x: 0.0, y: -9.81, z: 0.0 });
+export const world = new World({ x: 0.0, y: -9.81, z: 0.0 });
 world.numSolverIterations = 16;
 
 const eventQueue = new EventQueue(true);
 
 const { scene, camera, renderer, stats } = initScene();
 
-const keyboard = new Keyboard(renderer);
-
 /*const joystickControls = new JoystickControls(
   camera,
   scene,
 );*/
 
-const car = new CarController(scene, world, new Vector3(0, 2, 0));
-const cars: CarController[] = [car];
+const partsList = new PartsList();
+partsList.position.set(0, 1, 2);
+scene.add(partsList);
 
-const player = new Player(scene, camera, renderer, world, keyboard, cars, new Vector3(2, 4, 0));
+const cars: CarController[] = [];
+const player = new Player(scene, camera, renderer, world, cars, new Vector3(2, 4, 0));
 await player.init();
 
-setupEnvironment(scene, world);
+//const controls = new OrbitControls(camera, renderer.domElement);
 
-//const controls = new CameraController(camera);
+setupEnvironment(scene, world);
 
 const debugLines = new LineSegments(new BufferGeometry(), new LineBasicMaterial({ vertexColors: true }));
 debugLines.name = "DebugLines";
@@ -79,22 +79,36 @@ const gameLoop = () => {
 	world.timestep = Math.min(delta, 0.1);
 	world.step(eventQueue);
 
+	world.bodies.forEach((body) => {
+		if (body.isMoving() && body.userData && body.userData instanceof Part) {
+			const part = body.userData as Part;
+			part.quaternion.copy(body.rotation());
+			part.position.copy(body.translation());
+		}
+	});
+
+	world.colliders.forEach((collider) => {
+		/*world.contactPairsWith(collider, (otherCollider) => {
+			console.log(otherCollider);
+		});*/
+	});
+
+	/*eventQueue.drainContactForceEvents((event) => {
+		let handle1 = event.collider1(); // Handle of the first collider involved in the event.
+		let handle2 = event.collider2(); // Handle of the second collider involved in the event.
+		console.log(handle1, handle2, event);
+	});*/
+
 	eventQueue.drainCollisionEvents((_handle1, _handle2, started) => {
 		//console.log(handle1, handle2, started);
 		if (started) player.setGrounded();
 	});
 
-	eventQueue.drainContactForceEvents((_event) => {
-		//let handle1 = event.collider1(); // Handle of the first collider involved in the event.
-		//let handle2 = event.collider2(); // Handle of the second collider involved in the event.
-	});
-
-	car.update();
-
-	//controls.target.copy(car.carBodyPos);
-	//controls.update();
+	cars.forEach((car) => car.update(delta));
 
 	player.update(delta);
+
+	//controls.update();
 
 	renderRapierDebug(world);
 
