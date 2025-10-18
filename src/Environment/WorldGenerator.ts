@@ -1,4 +1,4 @@
-import { Collider, ColliderDesc, type World } from "@dimforge/rapier3d";
+import { Collider, ColliderDesc, RigidBody, RigidBodyDesc, type World } from "@dimforge/rapier3d";
 import {
 	BufferGeometry,
 	Group,
@@ -40,6 +40,7 @@ export class WorldGenerator {
 	public roadLeftSide: Vector3[] = [];
 	public roadRightSide: Vector3[] = [];
 	private roadCircle: boolean = false;
+	public body: RigidBody;
 
 	constructor(scene: Scene, world: World) {
 		this.currentGenerationType = "none";
@@ -47,6 +48,7 @@ export class WorldGenerator {
 		this.group.name = "WorldGenerator";
 		scene.add(this.group);
 		this.world = world;
+		this.body = world.createRigidBody(RigidBodyDesc.dynamic());
 	}
 
 	private create(geometry: BufferGeometry, materialParameters: MeshStandardMaterialParameters, position: Vector3 = new Vector3()) {
@@ -111,51 +113,6 @@ export class WorldGenerator {
 	}
 
 	endRoad() {
-		/*
-		const geometry = new BufferGeometry();
-		geometry.name = "Road" + this.roadNextID++;
-
-		const points = [] as Vector3[];
-		const indices = [] as number[];
-		let vertexCount = 0;
-
-		let prevTL: Vector3 | null = null;
-		let prevTR: Vector3 | null = null;
-
-		for (let i = 0; i < this.roadPositions.length - 1; i++) {
-
-			
-			const pos0 = this.roadPositions[i];
-			const pos1 = this.roadPositions[i + 1];
-
-			const radTo = Math.atan2(pos1.z - pos0.z, pos1.x - pos0.x) - Math.PI / 2;
-			const halfWidth = this.roadWidth / 2;
-
-			const cos = Math.cos(radTo) * halfWidth;
-			const sin = Math.sin(radTo) * halfWidth;
-
-			const tiltMatrix0 = new Matrix4().makeRotationZ(degToRad(this.roadAngles[i]));
-			const tiltMatrix1 = new Matrix4().makeRotationZ(degToRad(this.roadAngles[i + 1]));
-
-			const bl = prevTL ? prevTL.clone() : new Vector3(pos0.x - cos, pos0.y, pos0.z - sin).applyMatrix4(tiltMatrix0);
-			const br = prevTR ? prevTR.clone() : new Vector3(pos0.x + cos, pos0.y, pos0.z + sin).applyMatrix4(tiltMatrix0);
-
-			const tl = new Vector3(pos1.x - cos, pos1.y, pos1.z - sin).applyMatrix4(tiltMatrix1);
-			const tr = new Vector3(pos1.x + cos, pos1.y, pos1.z + sin).applyMatrix4(tiltMatrix1);
-
-			points.push(tl, tr, br, bl); // polygon
-			indices.push(vertexCount, vertexCount + 1, vertexCount + 2, vertexCount, vertexCount + 2, vertexCount + 3);
-			vertexCount += 4;
-
-			prevTL = tl;
-			prevTR = tr;
-			this.roadLeftSide.push(bl);
-			this.roadRightSide.push(br);
-		}
-
-		geometry.setFromPoints(points);
-		geometry.setIndex(indices);
-*/
 		const geometry = buildRoadGeometry(this.roadPositions, this.roadWidth, this.roadAngles, this.roadCircle);
 		geometry.name = "Road" + this.roadNextID++;
 
@@ -299,6 +256,6 @@ function buildRoadGeometry(roadPositions: Vector3[], roadWidth: number, roadAngl
 	const geom = new BufferGeometry();
 	geom.setFromPoints(points);
 	geom.setIndex(indices);
-	geom.computeVertexNormals();
+	//geom.computeVertexNormals();
 	return geom;
 }

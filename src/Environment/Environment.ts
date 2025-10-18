@@ -1,44 +1,10 @@
 import { type World } from "@dimforge/rapier3d";
-import { Group, MathUtils, PlaneGeometry, Scene, Vector3 } from "three";
+import { Group, MathUtils, PlaneGeometry, Quaternion, Scene, Vector3 } from "three";
 import { Sky, Water2, type Water2Options } from "three/examples/jsm/Addons.js";
 import { WorldGenerator } from "./WorldGenerator";
-import Craft from "../Vehicle/Craft";
-import type { Part } from "../Parts/PartsList";
-
-export class Crafts extends Group {
-	nextID = 1;
-	children: Craft[];
-
-	constructor() {
-		super();
-		this.name = "Crafts";
-		this.children = [];
-	}
-
-	createCraft() {
-		const craft = new Craft();
-		craft.name = "craft" + this.nextID++;
-		this.add(craft);
-		return craft;
-	}
-
-	drawFantoms(selectedPart: Part) {
-		this.children.forEach((child) => {
-			if (child instanceof Craft) child.drawFantoms(selectedPart);
-		});
-	}
-
-	removeFantoms() {
-		this.children.forEach((child) => {
-			if (child instanceof Craft) child.removeFantoms();
-		});
-	}
-}
+import {  WallWithWindow } from "./Building";
 
 export function setupEnvironment(scene: Scene, world: World) {
-	const crafts = new Crafts();
-	scene.add(crafts);
-
 	const environment = new Group();
 	environment.name = "Environment";
 	scene.add(environment);
@@ -86,6 +52,13 @@ export function setupEnvironment(scene: Scene, world: World) {
 	generator.endCircle();
 	generator.endRoad();
 
+	//const rotation = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
+	//const angar = new Building("HOUSE",new Vector3(20, 0, 0), rotation, new Vector3(10, 4, 10));
+	//scene.add(angar);
+
+	const wall = new WallWithWindow(new Vector3(15, 2, 0), new Quaternion(), new Vector3(0.25, 4, 10));
+	scene.add(wall);
+	wall.syncPhysics();
 	//generator.addBordersToRoad(generator.roadLeftSide, -1);
 	//generator.addBordersToRoad(generator.roadRightSide, 1);
 }

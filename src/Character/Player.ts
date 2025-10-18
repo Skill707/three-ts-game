@@ -2,12 +2,12 @@ import { Euler, Matrix4, Object3D, PerspectiveCamera, Quaternion, Vector3, WebGL
 import Keyboard from "../Keyboard";
 import AnimationController from "./AnimationController";
 import FollowCam from "./FollowCam";
-import { ActiveEvents, Collider, ColliderDesc, ImpulseJoint, JointData, RigidBodyDesc, type RigidBody, type World } from "@dimforge/rapier3d";
+import { ActiveEvents,  ColliderDesc,  RigidBodyDesc, type RigidBody } from "@dimforge/rapier3d";
 import type CarController from "../Vehicle/CarController";
+import { world } from "../main";
 
 export default class Player {
 	private scene: Scene;
-	private world: World;
 	private body: RigidBody;
 	private animationController?: AnimationController;
 	private vector = new Vector3();
@@ -22,15 +22,15 @@ export default class Player {
 	private keyboard: Keyboard;
 	private wait = false;
 	private drivingCar: CarController | null = null;
-	private collider?: Collider;
+	//private collider: Collider;
 	protected colliderDesc: ColliderDesc;
-	private cars: CarController[];
-	private seatJoint?: ImpulseJoint | null;
+	//private cars: CarController[];
+	//private seatJoint?: ImpulseJoint | null;
+	/*private test: Part | null = null;
+	private testJoint?: ImpulseJoint | null = null;*/
 
-	constructor(scene: Scene, camera: PerspectiveCamera, renderer: WebGLRenderer, world: World, cars: CarController[], position: Vector3 = new Vector3()) {
+	constructor(scene: Scene, camera: PerspectiveCamera, renderer: WebGLRenderer, position: Vector3 = new Vector3()) {
 		this.scene = scene;
-		this.world = world;
-		this.cars = cars;
 		this.keyboard = new Keyboard(renderer);
 		this.followCam = new FollowCam(this.scene, camera, renderer);
 
@@ -52,7 +52,11 @@ export default class Player {
 			.setFriction(0)
 			.setActiveEvents(ActiveEvents.COLLISION_EVENTS);
 
-		this.collider = world.createCollider(this.colliderDesc, this.body);
+		//this.collider = world.createCollider(this.colliderDesc, this.body);
+
+		/*this.test = new Part("block");
+		this.test.position.set(0, 2, 0);
+		this.test.addPhysics();*/
 	}
 
 	async init() {
@@ -64,14 +68,14 @@ export default class Player {
 		console.log("grounded");
 
 		this.body.setLinearDamping(4);
-		this.body.setEnabledRotations(false, false, false, true);
+		//this.body.setEnabledRotations(false, false, false, true);
 		this.body.setRotation(new Quaternion(), true);
 
 		this.grounded = true;
 		setTimeout(() => (this.wait = false), 250);
 	}
 
-	private getCar() {
+	/*private getCar() {
 		for (let index = 0; index < this.cars.length; index++) {
 			const car = this.cars[index];
 			if (car.carBodyPos.distanceTo(this.body.translation()) < 2.5) {
@@ -112,18 +116,33 @@ export default class Player {
 		this.body.setRotation(new Quaternion(), true);
 
 		setTimeout(() => (this.wait = false), 500);
-	}
+	}*/
 
 	update(delta: number) {
 		this.inputVelocity.set(0, 0, 0);
 
-		if (!this.wait && this.keyboard.keyMap["KeyF"]) {
+		/*if (!this.wait && this.keyboard.keyMap["KeyF"]) {
 			if (this.drivingCar) {
 				this.getOutOfCar();
 			} else {
 				this.getInCar();
 			}
-		}
+		}*/
+
+
+
+		/*if (!this.wait && this.keyboard.keyMap["KeyF"]) {
+			this.wait = true;
+			if (!this.testJoint && this.test && this.test.body) {
+				const anchor1 = new Vector3(0, 0, 0);
+				const anchor2 = new Vector3(0, 0.25, 0);
+				this.testJoint = fixedJoint(this.body, this.test.body, anchor1, anchor2);
+			} else {
+				world.removeImpulseJoint(this.testJoint as ImpulseJoint, true);
+				this.testJoint = null;
+			}
+			setTimeout(() => (this.wait = false), 500);
+		}*/
 
 		if (this.drivingCar) {
 			this.drivingCar.drive(this.keyboard);

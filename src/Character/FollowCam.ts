@@ -1,9 +1,9 @@
 import { Matrix4, Object3D, PerspectiveCamera, Quaternion, Raycaster, Scene, Vector2, Vector3, WebGLRenderer } from "three";
 import { clamp } from "three/src/math/MathUtils.js";
-import { Part } from "../Parts/PartsList";
 import { Gyroscope } from "three/examples/jsm/Addons.js";
-import type { Crafts } from "../Environment/Environment";
 import type AttachPoint from "../Parts/AttachPoint";
+import { Part } from "../Parts/Part";
+import PartsList from "../Parts/PartsList";
 
 export default class FollowCam {
 	public camera: PerspectiveCamera;
@@ -14,11 +14,16 @@ export default class FollowCam {
 	public cameraOffset: Vector3 = new Vector3(0.35, 0.75, 0);
 	private raycaster: Raycaster = new Raycaster();
 	private scene: Scene;
+	private partsList: PartsList;
 
 	constructor(scene: Scene, camera: PerspectiveCamera, renderer: WebGLRenderer) {
 		this.scene = scene;
 		this.camera = camera;
 		this.raycaster.far = 100;
+
+		this.partsList = new PartsList();
+		this.partsList.position.set(0, -0.125, 4.5);
+		this.partsList.scale.set(0.1, 0.1, 0.1);
 
 		this.yaw.position.copy(this.cameraOffset.clone().applyQuaternion(this.camera.quaternion));
 
@@ -42,6 +47,7 @@ export default class FollowCam {
 		this.pitch.name = "FollowCam pitch";
 		this.pitch.add(camera); // adding the perspective camera to the hierarchy
 		this.pitch.add(this.hand);
+		this.pitch.add(this.partsList);
 	}
 
 	onDocumentMouseMove = (e: MouseEvent) => {
@@ -86,14 +92,18 @@ export default class FollowCam {
 
 	onDocumentMouseWheel = (e: WheelEvent) => {
 		e.preventDefault();
-		const v = this.camera.position.z + e.deltaY * 0.005;
+		if (e.altKey) {
+			const v = this.camera.position.z + e.deltaY * 0.005;
+			if (v >= 0 && v <= 10) {
+				this.camera.position.z = v;
+				this.partsList.position.z = v - 0.5;
 
-		// limit range
-		if (v >= 0 && v <= 10) {
-			this.camera.position.z = v;
-
-			const y = 1.2 - (v / 10) * (1.2 - 0.75); // линейно уменьшается с ростом v
-			this.cameraOffset.setY(clamp(y, 0.75, 1.2));
+				const y = 1.2 - (v / 10) * (1.2 - 0.75); // линейно уменьшается с ростом v
+				this.cameraOffset.setY(clamp(y, 0.75, 1.2));
+			}
+		} else {
+			if (e.deltaY > 0) this.partsList.selectNext();
+			else this.partsList.selectPrev();
 		}
 	};
 
@@ -119,9 +129,9 @@ export default class FollowCam {
 						this.hand.takePart(clone);
 					}
 					part.detach();
-					const crafts = this.scene.getObjectByName("Crafts") as Crafts;
+					/*const crafts = this.scene.getObjectByName("Crafts") as Crafts;
 					if (crafts) crafts.drawFantoms(part);
-					return;
+					return;*/
 				}
 			}
 		}
@@ -130,8 +140,7 @@ export default class FollowCam {
 			console.log("do", this.hand.part);
 			const part = this.hand.part;
 			if (!part.craft) {
-				const crafts = this.scene.getObjectByName("Crafts") as Crafts;
-
+				/*const crafts = this.scene.getObjectByName("Crafts") as Crafts;
 				if (crafts) {
 					const craft = crafts.createCraft();
 					const pos: Vector3 = new Vector3();
@@ -141,7 +150,7 @@ export default class FollowCam {
 					part.craft = craft;
 					part.addPhysics();
 					crafts.removeFantoms();
-				}
+				}*/
 			}
 			if (this.hand.snapToPart && this.hand.snapPoints) {
 				this.hand.snapToPart.craft?.add(part);

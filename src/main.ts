@@ -1,11 +1,11 @@
 import { ResourceLoader } from "./ResourceLoader";
-import { BufferAttribute, BufferGeometry, Clock, LineBasicMaterial, LineSegments, Vector3 } from "three";
+import {  BufferAttribute, BufferGeometry, Clock, LineBasicMaterial, LineSegments, } from "three";
 import initScene from "./SceneInit";
 import { EventQueue, World } from "@dimforge/rapier3d";
-import Player from "./Character/Player";
-import CarController from "./Vehicle/CarController";
 import { setupEnvironment } from "./Environment/Environment";
-import PartsList, { Part } from "./Parts/PartsList";
+import { Part } from "./Parts/Part";
+import { OrbitControls } from "three/examples/jsm/Addons.js";
+import { Wall } from "./Environment/Building";
 //import { JoystickControls } from 'three-joystick';
 
 const loading = document.getElementById("loading");
@@ -23,7 +23,7 @@ loading?.remove();
 document.addEventListener(
 	"click",
 	() => {
-		renderer.domElement.requestPointerLock();
+		//renderer.domElement.requestPointerLock();
 	},
 	false
 );
@@ -37,20 +37,16 @@ const eventQueue = new EventQueue(true);
 
 const { scene, camera, renderer, stats } = initScene();
 
+
 /*const joystickControls = new JoystickControls(
   camera,
   scene,
 );*/
 
-const partsList = new PartsList();
-partsList.position.set(0, 1, 2);
-scene.add(partsList);
+//const player = new Player(scene, camera, renderer, new Vector3(0, 2, 0));
+//await player.init();
 
-const cars: CarController[] = [];
-const player = new Player(scene, camera, renderer, world, cars, new Vector3(2, 4, 0));
-await player.init();
-
-//const controls = new OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
 
 setupEnvironment(scene, world);
 
@@ -80,14 +76,20 @@ const gameLoop = () => {
 	world.step(eventQueue);
 
 	world.bodies.forEach((body) => {
-		if (body.isMoving() && body.userData && body.userData instanceof Part) {
-			const part = body.userData as Part;
-			part.quaternion.copy(body.rotation());
-			part.position.copy(body.translation());
+		if (body.isMoving() && body.userData) {
+			if (body.userData instanceof Part) {
+				const part = body.userData as Part;
+				part.quaternion.copy(body.rotation());
+				part.position.copy(body.translation());
+			} else if (body.userData instanceof Wall) {
+				/*const wall = body.userData as Wall;
+				wall.quaternion.copy(body.rotation());
+				wall.position.copy(body.translation());*/
+			}
 		}
 	});
 
-	world.colliders.forEach((collider) => {
+	world.colliders.forEach((_collider) => {
 		/*world.contactPairsWith(collider, (otherCollider) => {
 			console.log(otherCollider);
 		});*/
@@ -99,16 +101,14 @@ const gameLoop = () => {
 		console.log(handle1, handle2, event);
 	});*/
 
-	eventQueue.drainCollisionEvents((_handle1, _handle2, started) => {
+	eventQueue.drainCollisionEvents((_handle1, _handle2, _started) => {
 		//console.log(handle1, handle2, started);
-		if (started) player.setGrounded();
+		//if (started) player.setGrounded();
 	});
 
-	cars.forEach((car) => car.update(delta));
+	//player.update(delta);
 
-	player.update(delta);
-
-	//controls.update();
+	controls.update();
 
 	renderRapierDebug(world);
 

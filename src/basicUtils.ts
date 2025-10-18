@@ -1,4 +1,6 @@
-import { type Intersection, type Group, type Object3D, Vector2, Vector3 } from "three";
+import { JointData, type RigidBody } from "@dimforge/rapier3d";
+import { type Intersection, type Group, type Object3D, Vector2, Vector3, Quaternion } from "three";
+import { world } from "./main";
 
 export function findGroup(obj: Object3D, group: Group | null = null): Group | null {
 	if ((obj as Group).isGroup) {
@@ -40,4 +42,33 @@ export function getBasis(object: Object3D) {
 	const up = new Vector3(0, 1, 0).applyQuaternion(q).normalize();
 	const forward = new Vector3(0, 0, -1).applyQuaternion(q).normalize();
 	return { right, up, forward };
+}
+
+export function fixedJoint(body1: RigidBody, body2: RigidBody, anchor1?: Vector3, anchor2?: Vector3, frame1?: Quaternion, frame2?: Quaternion) {
+	const pos1W = new Vector3(body1.translation().x, body1.translation().y, body1.translation().z);
+	const pos2W = new Vector3(body2.translation().x, body2.translation().y, body2.translation().z);
+	const rot1W = new Quaternion(body1.rotation().x, body1.rotation().y, body1.rotation().z, body1.rotation().w);
+	const rot2W = new Quaternion(body2.rotation().x, body2.rotation().y, body2.rotation().z, body2.rotation().w);
+
+	// локальная позиция body2 относительно body1
+	const pos2L = pos2W.clone().sub(pos1W).applyQuaternion(rot1W.clone().invert());
+	// локальная ориентация body2 относительно body1
+	const rot2L = rot1W.clone().invert().multiply(rot2W);
+
+	if (anchor1 && anchor2) {
+		//body1.setTranslation(body2pos.sub(anchor1).add(anchor2), false);
+	} else {
+		/*const delta = new Vector3().subVectors(body1pos, body2pos);
+		anchor1 = delta.clone().multiplyScalar(0.5);
+		anchor2 = delta.clone().multiplyScalar(-0.5);*/
+		anchor1 = pos2L;
+		anchor2 = new Vector3(0, 0, 0);
+	}
+	frame1 = frame1 ?? rot2L;
+	frame2 = frame2 ?? new Quaternion();
+	//const invBody2 = body2rot.clone().invert();
+	//frame2 = invBody2.multiply(body1rot).multiply(frame1);
+	const params = JointData.fixed(anchor1, frame1, anchor2, frame2);
+	const joint = world.createImpulseJoint(params, body1, body2, false);
+	return joint;
 }

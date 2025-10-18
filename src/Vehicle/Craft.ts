@@ -1,6 +1,6 @@
 import { BackSide, Color, Group, Mesh, Object3D, Quaternion, ShaderMaterial, Vector3 } from "three";
-import { Part } from "../Parts/PartsList";
 import type AttachPoint from "../Parts/AttachPoint";
+import { Part } from "../Parts/Part";
 
 const GlowMaterial = {
 	uniforms: {
