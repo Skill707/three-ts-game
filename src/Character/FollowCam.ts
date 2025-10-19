@@ -21,6 +21,8 @@ export default class FollowCam {
 		this.camera = camera;
 		this.raycaster.far = 100;
 
+		this.camera.position.set(0, 0, 5)
+
 		this.partsList = new PartsList();
 		this.partsList.position.set(0, -0.125, 4.5);
 		this.partsList.scale.set(0.1, 0.1, 0.1);
@@ -159,6 +161,10 @@ export default class FollowCam {
 			}
 		}
 	};
+
+	update(_delta: number){
+
+	}
 }
 
 class Hand extends Gyroscope {

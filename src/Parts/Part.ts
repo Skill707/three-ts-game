@@ -1,6 +1,5 @@
 import { BoxGeometry, ConeGeometry, Group, Mesh, MeshBasicMaterial, Object3D,  SphereGeometry, Vector3, type EulerTuple } from "three";
 import type Craft from "../Vehicle/Craft";
-import { world } from "../main";
 import { Collider, ColliderDesc, RigidBodyDesc, type RigidBody } from "@dimforge/rapier3d";
 import AttachPoint from "./AttachPoint";
 import { fixedJoint } from "../basicUtils";

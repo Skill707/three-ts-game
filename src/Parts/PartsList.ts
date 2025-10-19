@@ -9,7 +9,7 @@ export default class PartsList extends Object3D {
 		super();
 		this.name = "PartsList";
 		this.children = [];
-
+/*
 		const block = new Part("block");
 		block.position.set(0, 0, 0);
 		this.add(block);
@@ -23,7 +23,7 @@ export default class PartsList extends Object3D {
 		this.add(sphere);
 
 		this.selectedPart = block;
-		this.selectedPart.scale.set(1.5, 1.5, 1.5);
+		this.selectedPart.scale.set(1.5, 1.5, 1.5);*/
 	}
 
 	selectNext() {

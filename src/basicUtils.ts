@@ -1,6 +1,5 @@
 import { JointData, type RigidBody } from "@dimforge/rapier3d";
 import { type Intersection, type Group, type Object3D, Vector2, Vector3, Quaternion } from "three";
-import { world } from "./main";
 
 export function findGroup(obj: Object3D, group: Group | null = null): Group | null {
 	if ((obj as Group).isGroup) {

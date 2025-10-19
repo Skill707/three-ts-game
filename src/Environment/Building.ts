@@ -1,6 +1,5 @@
 import { BoxGeometry, Mesh, MeshBasicMaterial, Object3D, Quaternion, Vector3 } from "three";
 import type Craft from "../Vehicle/Craft";
-import { world } from "../main";
 import { Collider, ColliderDesc, ImpulseJoint, RigidBodyDesc, type RigidBody } from "@dimforge/rapier3d";
 import { fixedJoint } from "../basicUtils";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";

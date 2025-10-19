@@ -1,13 +1,12 @@
 import type { Object3D, Quaternion, Vector3 } from "three";
 
-
 export interface Part {
 	model: Object3D;
 	position: Vector3;
 	rotation: Quaternion;
 }
 
-export interface WheelPart extends Part{
+export interface WheelPart extends Part {
 	maxAngle: number;
 	maxSpeed: number;
 	suspStiffnes: number;

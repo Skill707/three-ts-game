@@ -1,13 +1,11 @@
-import { type World } from "@dimforge/rapier3d";
-import { Group, MathUtils, PlaneGeometry, Quaternion, Scene, Vector3 } from "three";
+import { Group, MathUtils, PlaneGeometry, Quaternion, Vector3 } from "three";
 import { Sky, Water2, type Water2Options } from "three/examples/jsm/Addons.js";
 import { WorldGenerator } from "./WorldGenerator";
-import {  WallWithWindow } from "./Building";
+import { WallWithWindow } from "./Building";
 
-export function setupEnvironment(scene: Scene, world: World) {
+export function setupEnvironment() {
 	const environment = new Group();
 	environment.name = "Environment";
-	scene.add(environment);
 
 	const sky = new Sky();
 	sky.name = "Sky";
@@ -57,8 +55,10 @@ export function setupEnvironment(scene: Scene, world: World) {
 	//scene.add(angar);
 
 	const wall = new WallWithWindow(new Vector3(15, 2, 0), new Quaternion(), new Vector3(0.25, 4, 10));
-	scene.add(wall);
+
 	wall.syncPhysics();
 	//generator.addBordersToRoad(generator.roadLeftSide, -1);
 	//generator.addBordersToRoad(generator.roadRightSide, 1);
+
+	return environment
 }
