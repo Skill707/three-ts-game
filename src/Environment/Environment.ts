@@ -1,7 +1,5 @@
-import { Group, MathUtils, PlaneGeometry, Quaternion, Vector3 } from "three";
+import { Group, MathUtils, PlaneGeometry, Vector3 } from "three";
 import { Sky, Water2, type Water2Options } from "three/examples/jsm/Addons.js";
-import { WorldGenerator } from "./WorldGenerator";
-import { WallWithWindow } from "./Building";
 
 export function setupEnvironment() {
 	const environment = new Group();
@@ -31,34 +29,12 @@ export function setupEnvironment() {
 	water.name = "Water";
 	environment.add(water);
 
-	const generator = new WorldGenerator(scene, world);
-	generator.createPlain();
-
-	generator.startRoad([0, 0.25, -50], 0, 15);
-	generator.moveTo([0, 0, 90], 0);
-	generator.endRoad();
-
-	generator.startRoad([50, 0.25, 90], 0, 15);
-	generator.moveTo([-90, 0, 0], 0);
-	generator.moveTo([-30, 0, -30], 0);
-	generator.moveTo([0, 0, -90], 0);
-	generator.moveTo([30, 0, -30], 0);
-	generator.moveTo([90, 0, 0], 0);
-	generator.moveTo([30, 0, 30], 0);
-	generator.moveTo([0, 0, 90], 0);
-	generator.moveTo([-30, 0, 30], 0);
-	generator.endCircle();
-	generator.endRoad();
-
 	//const rotation = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
 	//const angar = new Building("HOUSE",new Vector3(20, 0, 0), rotation, new Vector3(10, 4, 10));
 	//scene.add(angar);
 
-	const wall = new WallWithWindow(new Vector3(15, 2, 0), new Quaternion(), new Vector3(0.25, 4, 10));
-
-	wall.syncPhysics();
 	//generator.addBordersToRoad(generator.roadLeftSide, -1);
 	//generator.addBordersToRoad(generator.roadRightSide, 1);
 
-	return environment
+	return environment;
 }

@@ -1,15 +1,14 @@
 import { ResourceLoader } from "./ResourceLoader";
-import { BufferAttribute, BufferGeometry, Clock, LineBasicMaterial, LineSegments } from "three";
+import { BufferAttribute, BufferGeometry, Clock, LineBasicMaterial, LineSegments, Quaternion, Vector3 } from "three";
 import initScene from "./SceneInit";
-import { ColliderDesc, EventQueue, World } from "@dimforge/rapier3d";
-import { Part } from "./Parts/Part";
-import { Wall } from "./Environment/Building";
+import { EventQueue, JointData, RigidBody, World } from "@dimforge/rapier3d";
+import { Building, Wall, WallWithWindow } from "./Environment/Building";
 import Keyboard from "./Keyboard";
 import FollowCam from "./Character/FollowCam";
-import { OrbitControls } from "three/examples/jsm/Addons.js";
-import type { Entity } from "./Entity";
-import { NetworkManager } from "./NetworkManager";
-import type { PlayerState } from "./shared";
+import { Entity } from "./Entity";
+import { setupEnvironment } from "./Environment/Environment";
+import { WorldGenerator } from "./Environment/WorldGenerator";
+import { LocalPlayer } from "./Character/LocalPlayer";
 
 const loading = document.getElementById("loading");
 export const resources = new ResourceLoader();
@@ -26,7 +25,7 @@ loading?.remove();
 document.addEventListener(
 	"click",
 	() => {
-		//renderer.domElement.requestPointerLock();
+		renderer.domElement.requestPointerLock();
 	},
 	false
 );
@@ -38,65 +37,101 @@ const eventQueue = new EventQueue(true);
 const { scene, camera, renderer, stats } = initScene();
 
 const params = new URLSearchParams(window.location.search);
-const nick = params.get("nick");
-console.log(nick);
-
-const networkManager = new NetworkManager();
-await networkManager.connect("http://localhost:3000", nick || "");
-
-//networkManager.on("gameState", onGameState.bind(this));
-networkManager.on("playerJoined", onPlayerJoined);
-networkManager.on("playerLeft", onPlayerLeft);
-//networkManager.on("playerUpdate", onPlayerUpdate.bind(this));
-
-const entities: Map<string, Entity> = new Map();
-
-/*
-function createPlayer(playerState: PlayerState): void {
-	const isLocal = playerState.id === networkManager.getSocketId();
-	const player = new Player();
-	player.updateFromState(playerState);
-
-	players.set(playerState.id, player);
-
-	addEntity(player);
-
-	if (isLocal) {
-		//localPlayer = player;
-	}
-
-	console.log(`Player ${playerState.id} ${isLocal ? "(local)" : "(remote)"} joined the game`);
-}
-*/
-
-function onPlayerJoined(playerState: PlayerState): void {
-	console.log("PlayerJoined", playerState);
-
-	//createPlayer(playerState);
-}
-
-function onPlayerLeft(_playerId: string): void {
-	//this.removePlayer(playerId);
-}
+const nick = params.get("nick") || "Guest";
 
 const keyboard = new Keyboard(renderer);
 const followCam = new FollowCam(scene, camera, renderer);
+//const orbitControls = new OrbitControls(camera, renderer.domElement);
 
-//const localPlayer = new Player(new Vector3(2, 2, 0), keyboard, nick || "");
-//await player.init();
+const environment = setupEnvironment();
+scene.add(environment);
 
-const controls = new OrbitControls(camera, renderer.domElement);
+const generator = new WorldGenerator(scene, world);
+generator.createPlain();
 
-//setupEnvironment();
-const colliderDesc = ColliderDesc.cuboid(100, 1, 100);
-world.createCollider(colliderDesc);
+generator.startRoad([0, 0.25, -50], 0, 15);
+generator.moveTo([0, 0, 90], 0);
+generator.endRoad();
 
-function addEntity(entity: Entity) {
-	entity.body = world.createRigidBody(entity.bodyDesc);
-	entity.collider = world.createCollider(entity.colliderDesc, entity.body);
-	scene.add(entity.object);
+generator.startRoad([50, 0.25, 90], 0, 15);
+generator.moveTo([-90, 0, 0], 0);
+generator.moveTo([-30, 0, -30], 0);
+generator.moveTo([0, 0, -90], 0);
+generator.moveTo([30, 0, -30], 0);
+generator.moveTo([90, 0, 0], 0);
+generator.moveTo([30, 0, 30], 0);
+generator.moveTo([0, 0, 90], 0);
+generator.moveTo([-30, 0, 30], 0);
+generator.endCircle();
+generator.endRoad();
+
+function fixedJoint(body1: RigidBody, body2: RigidBody, anchor1?: Vector3, anchor2?: Vector3, frame1?: Quaternion, frame2?: Quaternion) {
+	const pos1W = new Vector3(body1.translation().x, body1.translation().y, body1.translation().z);
+	const pos2W = new Vector3(body2.translation().x, body2.translation().y, body2.translation().z);
+	const rot1W = new Quaternion(body1.rotation().x, body1.rotation().y, body1.rotation().z, body1.rotation().w);
+	const rot2W = new Quaternion(body2.rotation().x, body2.rotation().y, body2.rotation().z, body2.rotation().w);
+
+	// локальная позиция body2 относительно body1
+	const pos2L = pos2W.clone().sub(pos1W).applyQuaternion(rot1W.clone().invert());
+	// локальная ориентация body2 относительно body1
+	const rot2L = rot1W.clone().invert().multiply(rot2W);
+
+	if (anchor1 && anchor2) {
+		//body1.setTranslation(body2pos.sub(anchor1).add(anchor2), false);
+	} else {
+		/*const delta = new Vector3().subVectors(body1pos, body2pos);
+		anchor1 = delta.clone().multiplyScalar(0.5);
+		anchor2 = delta.clone().multiplyScalar(-0.5);*/
+		anchor1 = pos2L;
+		anchor2 = new Vector3(0, 0, 0);
+	}
+	frame1 = frame1 ?? rot2L;
+	frame2 = frame2 ?? new Quaternion();
+	//const invBody2 = body2rot.clone().invert();
+	//frame2 = invBody2.multiply(body1rot).multiply(frame1);
+	const params = JointData.fixed(anchor1, frame1, anchor2, frame2);
+	const joint = world.createImpulseJoint(params, body1, body2, false);
+	return joint;
 }
 
+// ENTITIES
+const entities: Map<string, Entity> = new Map();
+
+function addEntity(entityOrArray: Entity | Entity[]) {
+	const list = Array.isArray(entityOrArray) ? entityOrArray : [entityOrArray];
+
+	for (const entity of list) {
+		entity.body = world.createRigidBody(entity.bodyDesc);
+		entity.collider = world.createCollider(entity.colliderDesc, entity.body);
+		scene.add(entity.object);
+		entities.set(entity.ID, entity);
+	}
+}
+
+const localPlayer = new LocalPlayer(new Vector3(0, 2, 0), keyboard, nick || "");
+addEntity(localPlayer);
+
+const wall = new Wall(new Vector3(-10, 2, 0), new Quaternion(), new Vector3(0.25, 4, 10));
+addEntity(wall);
+
+const wallWithWindow = new WallWithWindow(new Vector3(-15, 2, 0), new Quaternion(), new Vector3(0.25, 4, 10));
+addEntity(wallWithWindow);
+
+const ff = new Building("HOUSE", new Vector3(10, 1, 0), new Quaternion());
+addEntity(ff.parts);
+
+for (let i = 1; i < ff.parts.length; i++) {
+	const body1 = ff.parts[0].body;
+	const body2 = ff.parts[i].body;
+	if (body1 && body2) {
+		fixedJoint(body1, body2);
+	}
+}
+
+console.log(entities);
+console.log(localPlayer);
+
+// DEBUG
 const debugLines = new LineSegments(new BufferGeometry(), new LineBasicMaterial({ vertexColors: true }));
 debugLines.name = "DebugLines";
 scene.add(debugLines);
@@ -122,44 +157,28 @@ const gameLoop = () => {
 	world.timestep = Math.min(delta, 0.1);
 	world.step(eventQueue);
 
-	world.bodies.forEach((body) => {
-		if (body.isMoving() && body.userData) {
-			if (body.userData instanceof Part) {
-				const part = body.userData as Part;
-				part.quaternion.copy(body.rotation());
-				part.position.copy(body.translation());
-			} else if (body.userData instanceof Wall) {
-				/*const wall = body.userData as Wall;
-				wall.quaternion.copy(body.rotation());
-				wall.position.copy(body.translation());*/
-			}
-		}
-	});
-
-	world.colliders.forEach((_collider) => {
-		/*world.contactPairsWith(collider, (otherCollider) => {
+	/*world.colliders.forEach((_collider) => {
+		world.contactPairsWith(collider, (otherCollider) => {
 			console.log(otherCollider);
-		});*/
-	});
-
-	/*eventQueue.drainContactForceEvents((event) => {
-		let handle1 = event.collider1(); // Handle of the first collider involved in the event.
-		let handle2 = event.collider2(); // Handle of the second collider involved in the event.
-		console.log(handle1, handle2, event);
+		});
 	});*/
 
-	eventQueue.drainCollisionEvents((_handle1, _handle2, _started) => {
-		//console.log(handle1, handle2, started);
-		//if (started) localPlayer.setGrounded();
+	//eventQueue.drainContactForceEvents
+
+	eventQueue.drainCollisionEvents((_handle1, _handle2, started) => {
+		if (started) localPlayer.setGrounded();
 	});
 
-	//localPlayer.update(delta);
+	entities.forEach((entity) => {
+		entity.updateFromPhysics();
+		entity.update(delta);
+	});
 
-	//localPlayer.updateFromPhysics();
-
-	controls.update();
+	//orbitControls.update();
 
 	followCam.update(delta);
+	followCam.follow(delta, localPlayer.object.position);
+	localPlayer.followCamYaw = followCam.yaw.rotation.y;
 
 	renderRapierDebug(world);
 

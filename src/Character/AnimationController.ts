@@ -1,29 +1,21 @@
-import type { AnimationAction, Scene } from "three";
+import type { AnimationAction } from "three";
 import type Keyboard from "../Keyboard";
-import Eve from "./Eve";
+import type { ActionsGroup } from "../types";
 
 export default class AnimationController {
-	private scene: Scene;
 	private wait = false;
-	readonly animationActions: { [key: string]: AnimationAction } = {};
+	private animationActions: ActionsGroup;
 	private activeAction?: AnimationAction;
 	public speed = 0;
-	private keyboard: Keyboard;
-	public model?: Eve;
+	private keyboard: Keyboard | null = null;
 
-	constructor(scene: Scene, keyboard: Keyboard) {
-		this.scene = scene;
+	constructor(keyboard: Keyboard | null, animationActions: ActionsGroup) {
 		this.keyboard = keyboard;
-	}
-
-	async init() {
-		this.model = new Eve();
-		await this.model.init(this.animationActions);
+		this.animationActions = animationActions;
 		this.activeAction = this.animationActions["idle"];
-		this.scene.add(this.model);
 	}
 
-	setAction(action: AnimationAction) {
+	private setAction(action: AnimationAction) {
 		if (this.activeAction != action) {
 			this.activeAction?.fadeOut(0.1);
 			action.reset().fadeIn(0.1).play();
@@ -48,8 +40,8 @@ export default class AnimationController {
 		}
 	}
 
-	update(delta: number) {
-		if (!this.wait) {
+	update() {
+		if (!this.wait && this.keyboard) {
 			let actionAssigned = false;
 
 			if (this.keyboard.keyMap["Space"]) {
@@ -93,8 +85,5 @@ export default class AnimationController {
 
 			!actionAssigned && this.setAction(this.animationActions["idle"]);
 		}
-
-		// update the Eve models animation mixer
-		this.model?.update(delta);
 	}
 }

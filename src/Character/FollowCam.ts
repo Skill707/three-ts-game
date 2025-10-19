@@ -21,7 +21,7 @@ export default class FollowCam {
 		this.camera = camera;
 		this.raycaster.far = 100;
 
-		this.camera.position.set(0, 0, 5)
+		this.camera.position.set(0, 0, 5);
 
 		this.partsList = new PartsList();
 		this.partsList.position.set(0, -0.125, 4.5);
@@ -162,8 +162,12 @@ export default class FollowCam {
 		}
 	};
 
-	update(_delta: number){
+	update(delta: number) {
+		this.yaw.position.lerp(this.cameraOffset.clone().applyQuaternion(this.yaw.quaternion), delta * 10);
+	}
 
+	follow(delta: number, position: Vector3) {
+		this.pivot.position.lerp(position, delta * 10); // lerp the followCam pivot towards the vector
 	}
 }
 

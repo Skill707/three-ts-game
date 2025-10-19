@@ -20,6 +20,87 @@ export default class CarController {
 	private transmission: Transmission = new Transmission();
 	private steer: Steer = new Steer();
 
+	/*
+		if (!this.wait && this.keyboard.keyMap["KeyF"]) {
+			if (this.drivingCar) {
+				this.getOutOfCar();
+			} else {
+				this.getInCar();
+			}
+		}
+		if (!this.wait && this.keyboard.keyMap["KeyF"]) {
+			this.wait = true;
+			if (!this.testJoint && this.test && this.test.body) {
+				const anchor1 = new Vector3(0, 0, 0);
+				const anchor2 = new Vector3(0, 0.25, 0);
+				this.testJoint = fixedJoint(this.body, this.test.body, anchor1, anchor2);
+			} else {
+				world.removeImpulseJoint(this.testJoint as ImpulseJoint, true);
+				this.testJoint = null;
+			}
+			setTimeout(() => (this.wait = false), 500);
+		}
+
+		if (this.drivingCar) {
+			this.drivingCar.drive(this.keyboard);
+			if (this.animationController) {
+				this.animationController.setAction(this.animationController.animationActions["drive"]);
+
+				this.followTarget.position.copy(this.body.translation());
+				this.followTarget.getWorldPosition(this.vector);
+				this.followCam.pivot.position.lerp(this.vector, delta * 10);
+
+				this.animationController.model?.position.lerp(this.vector, delta * 20);
+
+				this.animationController?.model?.quaternion.copy(this.body.rotation());
+
+				this.animationController.update(delta);
+			}
+		} */
+
+				/*private getCar() {
+		for (let index = 0; index < this.cars.length; index++) {
+			const car = this.cars[index];
+			if (car.carBodyPos.distanceTo(this.body.translation()) < 2.5) {
+				return car;
+			}
+		}
+	}
+
+	private getInCar() {
+		console.log("get in car");
+		const car = this.getCar();
+		if (!car) return;
+		this.drivingCar = car;
+		this.wait = true;
+
+		this.collider?.setEnabled(false);
+		const jointData = JointData.fixed(car.driverSeatPos, new Quaternion(), new Vector3(), new Quaternion());
+		this.seatJoint = this.world.createImpulseJoint(jointData, this.body, car.body, false);
+		this.seatJoint.setContactsEnabled(false);
+
+		this.body.setLinearDamping(0);
+		this.body.setEnabledRotations(true, true, true, false);
+
+		setTimeout(() => (this.wait = false), 500);
+	}
+
+	private getOutOfCar() {
+		console.log("get out car");
+		this.drivingCar?.setBrake();
+		this.drivingCar = null;
+		this.grounded = false;
+		this.wait = true;
+		this.world.removeImpulseJoint(this.seatJoint as ImpulseJoint, true);
+		this.collider?.setEnabled(true);
+
+		this.body.setLinearDamping(4);
+		this.body.setEnabledRotations(false, false, false, true);
+		this.body.setRotation(new Quaternion(), true);
+
+		setTimeout(() => (this.wait = false), 500);
+	}*/
+
 	constructor(scene: Scene, world: World, name: string, position: Vector3 = new Vector3()) {
 		//const pos = carParts.rootPos.clone().add(carParts.main.model.position);
 		const body = world.createRigidBody(

@@ -2,7 +2,6 @@ import { BoxGeometry, ConeGeometry, Group, Mesh, MeshBasicMaterial, Object3D,  S
 import type Craft from "../Vehicle/Craft";
 import { Collider, ColliderDesc, RigidBodyDesc, type RigidBody } from "@dimforge/rapier3d";
 import AttachPoint from "./AttachPoint";
-import { fixedJoint } from "../basicUtils";
 
 type PartType = "block" | "cone" | "sphere";
 

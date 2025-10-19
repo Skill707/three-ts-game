@@ -1,6 +1,8 @@
 import { Object3D } from "three";
 import { RigidBody, ColliderDesc, RigidBodyDesc, Collider } from "@dimforge/rapier3d";
 import { Socket } from "socket.io-client";
+import type { PlayerState } from "./shared";
+import type { EntityTypes } from "./types";
 
 export interface EntityState {
 	ID: string;
@@ -9,7 +11,7 @@ export interface EntityState {
 	velocity?: [number, number, number];
 }
 
-export class Entity {
+export abstract class Entity {
 	ID: string;
 	bodyDesc: RigidBodyDesc;
 	colliderDesc: ColliderDesc;
@@ -18,8 +20,10 @@ export class Entity {
 	body: RigidBody | null = null;
 	collider: Collider | null = null;
 	socket: Socket | null = null;
+	type: EntityTypes;
 
-	constructor() {
+	constructor(type: EntityTypes) {
+		this.type = type;
 		this.ID = crypto.randomUUID();
 
 		// физическая часть
@@ -34,13 +38,30 @@ export class Entity {
 		}
 	}
 
+	public updateFromState(state: PlayerState): void {
+		//this.targetPosition.set(state.position.x, state.position.y, state.position.z);
+		//this.targetRotation = state.rotation.y;
+
+		// For local player, we might want to apply server corrections
+		if (this.body) {
+			const currentPos = this.body.translation();
+			const distance = Math.sqrt(Math.pow(currentPos.x - state.position.x, 2) + Math.pow(currentPos.z - state.position.z, 2));
+
+			// If we're too far from server position, snap to it (server reconciliation)
+			if (distance > 2) {
+				this.body.setTranslation(state.position, true);
+				console.log("Server correction applied");
+			}
+		}
+	}
+
 	// === обновление из физики ===
 	updateFromPhysics() {
 		if (!this.body || !this.object) return;
 		const t = this.body.translation();
 		const r = this.body.rotation();
 		this.object.position.set(t.x, t.y, t.z);
-		this.object.quaternion.set(r.x, r.y, r.z, r.w);
+		if (this.type !== "player") this.object.quaternion.set(r.x, r.y, r.z, r.w);
 	}
 
 	// === синхронизация по сети ===
@@ -60,5 +81,9 @@ export class Entity {
 		this.quaternion.fromArray(state.rotation);
 		this.body.setTranslation(this.position, false);
 		this.body.setRotation(this.quaternion, false);*/
+	}
+
+	update(delta: number) {
+		console.log("Entity class update", delta);
 	}
 }

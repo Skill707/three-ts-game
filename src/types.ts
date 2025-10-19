@@ -1,4 +1,4 @@
-import type { Object3D, Quaternion, Vector3 } from "three";
+import type { AnimationAction, Object3D, Quaternion, Vector3 } from "three";
 
 export interface Part {
 	model: Object3D;
@@ -19,3 +19,9 @@ export interface CarParts {
 	main: Part;
 	wheels: WheelPart[];
 }
+
+export interface ActionsGroup {
+	[key: string]: AnimationAction;
+}
+
+export type EntityTypes = "player" | "npc" | "item" | "buildingPart" | "craft" | "none";
