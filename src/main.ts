@@ -2,13 +2,18 @@ import { ResourceLoader } from "./ResourceLoader";
 import { BufferAttribute, BufferGeometry, Clock, LineBasicMaterial, LineSegments, Quaternion, Vector3 } from "three";
 import initScene from "./SceneInit";
 import { EventQueue, JointData, RigidBody, World } from "@dimforge/rapier3d";
-import { Building, Wall, WallWithWindow } from "./Environment/Building";
+import { Wall } from "./Environment/Building";
 import Keyboard from "./Keyboard";
 import FollowCam from "./Character/FollowCam";
 import { Entity } from "./Entity";
 import { setupEnvironment } from "./Environment/Environment";
 import { WorldGenerator } from "./Environment/WorldGenerator";
+import { NetworkManager } from "./NetworkManager";
+import { Player } from "./Character/Player";
+import { NPC } from "./Character/NPC";
+import type { EntityState, GameState, PlayerState } from "./shared";
 import { LocalPlayer } from "./Character/LocalPlayer";
+import Character from "./Character/Character";
 
 const loading = document.getElementById("loading");
 export const resources = new ResourceLoader();
@@ -35,9 +40,6 @@ world.numSolverIterations = 16;
 const eventQueue = new EventQueue(true);
 
 const { scene, camera, renderer, stats } = initScene();
-
-const params = new URLSearchParams(window.location.search);
-const nick = params.get("nick") || "Guest";
 
 const keyboard = new Keyboard(renderer);
 const followCam = new FollowCam(scene, camera, renderer);
@@ -96,8 +98,10 @@ function fixedJoint(body1: RigidBody, body2: RigidBody, anchor1?: Vector3, ancho
 
 // ENTITIES
 const entities: Map<string, Entity> = new Map();
+//const players: Map<string, PlayerState> = new Map();
 
-function addEntity(entityOrArray: Entity | Entity[]) {
+function addEntity(entityOrArray: Entity | Entity[] | undefined) {
+	if (!entityOrArray) return;
 	const list = Array.isArray(entityOrArray) ? entityOrArray : [entityOrArray];
 
 	for (const entity of list) {
@@ -108,28 +112,83 @@ function addEntity(entityOrArray: Entity | Entity[]) {
 	}
 }
 
-const localPlayer = new LocalPlayer(new Vector3(0, 2, 0), keyboard, nick || "");
-addEntity(localPlayer);
+function createEntityFromState(entityState: EntityState) {
+	const position = new Vector3().fromArray(entityState.position);
+	const rotation = new Quaternion().fromArray(entityState.rotation);
+	switch (entityState.type) {
+		case "player":
+			let player;
+			if (entityState.ID !== network.getSocketId()) player = new Player(entityState.ID, position, entityState.name);
+			else player = new LocalPlayer(entityState.ID, position, entityState.name, keyboard);
+			return player;
+		case "npc":
+			const npc = new NPC(entityState.ID, position);
+			return npc;
+		case "wall":
+			const wall = new Wall(entityState.ID, position, rotation, new Vector3(0.25, 4, 10));
+			return wall;
+		default:
+			break;
+	}
+}
 
-const wall = new Wall(new Vector3(-10, 2, 0), new Quaternion(), new Vector3(0.25, 4, 10));
-addEntity(wall);
+// NETWORK
+let localPlayer: Entity | null = null;
+const network = new NetworkManager("http://localhost:3000");
+await network.connect();
 
-const wallWithWindow = new WallWithWindow(new Vector3(-15, 2, 0), new Quaternion(), new Vector3(0.25, 4, 10));
-addEntity(wallWithWindow);
+network.on("gameState", (data: GameState) => {
+	data.entities.forEach((entityState) => {
+		if (entities.has(entityState.ID)) {
+			const entity = entities.get(entityState.ID);
+			if (entity) {
+				if (entity instanceof LocalPlayer) {
+				} else {
+					entity.updateFromState(entityState);
+					if (entity.body) {
+						const posDelta = entity.networkPosition.clone().sub(entity.body.translation());
+						//console.log(entity.type, posDelta);
+					}
+				}
+			}
+		} else {
+			addEntity(createEntityFromState(entityState));
+		}
+	});
 
-const ff = new Building("HOUSE", new Vector3(10, 1, 0), new Quaternion());
-addEntity(ff.parts);
+	entities.forEach((entity) => {
+		if (!data.entities.some((e) => e.ID === entity.ID)) {
+			entity.object.removeFromParent();
+			if (entity.body) world.removeRigidBody(entity.body);
+			if (entity.collider) world.removeCollider(entity.collider, false);
+			entities.delete(entity.ID);
+		}
+	});
 
-for (let i = 1; i < ff.parts.length; i++) {
+	let pingStatsHtml = "Socket Ping Stats<br/><br/>";
+	let timestamp = Date.now(); //performance.now();
+	data.players.forEach((player) => {
+		pingStatsHtml += player.nick + " " + (timestamp - player.timestamp) + "ms<br/>";
+	});
+	(document.getElementById("pingStats") as HTMLDivElement).innerHTML = pingStatsHtml;
+
+	if (!localPlayer) {
+		localPlayer = entities.get(network.getSocketId() as string) || null;
+	} else {
+		if (localPlayer.body?.isSleeping() === false) {
+			localPlayer.sendNetworkState(network.socket);
+		}
+	}
+
+});
+
+/*for (let i = 1; i < ff.parts.length; i++) {
 	const body1 = ff.parts[0].body;
 	const body2 = ff.parts[i].body;
 	if (body1 && body2) {
 		fixedJoint(body1, body2);
 	}
-}
-
-console.log(entities);
-console.log(localPlayer);
+}*/
 
 // DEBUG
 const debugLines = new LineSegments(new BufferGeometry(), new LineBasicMaterial({ vertexColors: true }));
@@ -166,19 +225,22 @@ const gameLoop = () => {
 	//eventQueue.drainContactForceEvents
 
 	eventQueue.drainCollisionEvents((_handle1, _handle2, started) => {
-		if (started) localPlayer.setGrounded();
+		if (started && localPlayer) (localPlayer as LocalPlayer).setGrounded();
 	});
 
 	entities.forEach((entity) => {
 		entity.updateFromPhysics();
-		entity.update(delta);
+		if (entity instanceof Character) (entity as Character).updateControls(delta);
+		if (entity instanceof Player) entity.updateBodyFromNetwork();
 	});
 
 	//orbitControls.update();
 
 	followCam.update(delta);
-	followCam.follow(delta, localPlayer.object.position);
-	localPlayer.followCamYaw = followCam.yaw.rotation.y;
+	if (localPlayer) {
+		followCam.follow(delta, localPlayer.object.position);
+		(localPlayer as LocalPlayer).followCamYaw = followCam.yaw.rotation.y;
+	}
 
 	renderRapierDebug(world);
 

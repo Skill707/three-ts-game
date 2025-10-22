@@ -1,23 +1,33 @@
 import { io, Socket } from "socket.io-client";
 import type { GameState, PlayerState } from "./shared";
 
+const params = new URLSearchParams(window.location.search);
+const nick = params.get("nick") || "Guest";
+
 export class NetworkManager {
-	private socket: Socket | null = null;
+	public socket: Socket;
 	private eventHandlers: Map<string, Function[]> = new Map();
 	private lastPingTime = 0;
 	private pingInterval: number | null = null;
-	isHost: boolean = false;
+	public isHost: boolean = false;
 
-	public async connect(serverUrl: string, nick: string): Promise<void> {
+	constructor(serverUrl: string) {
+		this.socket = io(serverUrl, {
+			transports: ["websocket"],
+			query: { nick },
+		});
+	}
+
+	public async connect(): Promise<void> {
 		return new Promise((resolve, reject) => {
-			this.socket = io(serverUrl, {
-				transports: ["websocket"],
-				query: { nick },
-			});
-
 			this.socket.on("connect", () => {
 				console.log("Connected to server:", this.socket!.id);
 				this.startPingInterval();
+			});
+
+			this.socket.on("nickTaken", (data: { newNick: string; isHost: boolean }) => {
+				console.log("nickTaken", data);
+				this.isHost = data.isHost;
 				resolve();
 			});
 
@@ -29,6 +39,7 @@ export class NetworkManager {
 			this.socket.on("disconnect", () => {
 				console.log("Disconnected from server");
 				this.stopPingInterval();
+				this.emit("disconnect");
 			});
 
 			// Game message handlers
@@ -36,7 +47,7 @@ export class NetworkManager {
 				this.emit("gameState", data);
 			});
 
-			this.socket.on("playerJoined", (data: PlayerState) => {
+			/*this.socket.on("playerJoined", (data: PlayerState) => {
 				this.emit("playerJoined", data);
 			});
 
@@ -46,7 +57,7 @@ export class NetworkManager {
 
 			this.socket.on("playerUpdate", (data: PlayerState) => {
 				this.emit("playerUpdate", data);
-			});
+			});*/
 
 			this.socket.on("pong", () => {
 				const ping = performance.now() - this.lastPingTime;
@@ -59,10 +70,7 @@ export class NetworkManager {
 	}
 
 	public disconnect(): void {
-		if (this.socket) {
-			this.socket.disconnect();
-			this.socket = null;
-		}
+		this.socket.disconnect();
 		this.stopPingInterval();
 	}
 
@@ -78,11 +86,9 @@ export class NetworkManager {
 
 	private startPingInterval(): void {
 		this.pingInterval = setInterval(() => {
-			if (this.socket) {
-				this.lastPingTime = performance.now();
-				this.socket.emit("ping");
-			}
-		}, 1000);
+			this.lastPingTime = performance.now();
+			this.socket.emit("ping", Date.now());
+		}, 100);
 	}
 
 	private stopPingInterval(): void {

@@ -24,4 +24,3 @@ export interface ActionsGroup {
 	[key: string]: AnimationAction;
 }
 
-export type EntityTypes = "player" | "npc" | "item" | "buildingPart" | "craft" | "none";

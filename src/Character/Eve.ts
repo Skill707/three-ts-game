@@ -1,6 +1,8 @@
 import { AnimationMixer, AnimationUtils, Mesh, Object3D } from "three";
 import { resources } from "../main";
 import type { ActionsGroup } from "../types";
+import type { GLTF } from "three/examples/jsm/Addons.js";
+import { SkeletonUtils } from "three/addons";
 
 export default class Eve extends Object3D {
 	private mixer: AnimationMixer;
@@ -9,20 +11,20 @@ export default class Eve extends Object3D {
 	constructor() {
 		super();
 		this.name = "EveGroup";
-		const eve = resources.get("eveWalk");
-		const idle = resources.get("eveIdle");
-		const run = resources.get("eveRun");
-		const jump = resources.get("jump");
-		const drive = resources.get("drive");
-		const pose = resources.get("evePose");
+		const eve = resources.get<GLTF>("eveWalk");
+		const idle = resources.get<GLTF>("eveIdle");
+		const run = resources.get<GLTF>("eveRun");
+		const jump = resources.get<GLTF>("jump");
+		const drive = resources.get<GLTF>("drive");
+		const pose = resources.get<GLTF>("evePose");
 
-		const armature = eve.scene.children[0];
+		const armature = SkeletonUtils.clone(eve.scene);
 
-		armature.traverse((m: Mesh) => {
+		/*armature.traverse((m: Mesh) => {
 			if (m.isMesh) {
 				m.castShadow = true;
 			}
-		});
+		});*/
 
 		this.mixer = new AnimationMixer(armature);
 		this.animationActions["idle"] = this.mixer.clipAction(idle.animations[0]);

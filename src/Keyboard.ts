@@ -21,6 +21,7 @@ export default class Keyboard {
 	}
 
 	private onDocumentKey = (e: KeyboardEvent) => {
+		e.preventDefault();
 		this.keyMap[e.code] = e.type === "keydown";
 	};
 

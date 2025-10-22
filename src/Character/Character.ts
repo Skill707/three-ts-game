@@ -4,7 +4,7 @@ import { Entity } from "../Entity";
 import type Keyboard from "../Keyboard";
 import AnimationController from "./AnimationController";
 import Eve from "./Eve";
-import type { EntityTypes } from "../types";
+import type { EntityTypes } from "../shared";
 
 const euler = new Euler();
 const quaternion = new Quaternion();
@@ -19,7 +19,7 @@ export default abstract class Character extends Entity {
 	readonly object: Eve;
 
 	constructor(type: EntityTypes, position: Vector3 = new Vector3(), keyboard?: Keyboard) {
-		super(type);
+		super(type, false);
 
 		this.keyboard = keyboard || null;
 
@@ -37,13 +37,11 @@ export default abstract class Character extends Entity {
 			.setActiveEvents(ActiveEvents.COLLISION_EVENTS);
 
 		this.object = new Eve();
-		this.object.name = type;
-		this.animationController = new AnimationController(this.keyboard, this.object.animationActions);
+		this.animationController = new AnimationController(this.object.animationActions, this.keyboard);
 	}
 
 	setGrounded() {
 		if (!this.body) return;
-		console.log("grounded");
 		this.body.setLinearDamping(4);
 		this.body.setEnabledRotations(false, false, false, true);
 		this.body.setRotation(new Quaternion(), true);
@@ -51,41 +49,43 @@ export default abstract class Character extends Entity {
 		setTimeout(() => (this.wait = false), 250);
 	}
 
-	update(delta: number) {
-		this.inputVelocity.set(0, 0, 0);
+	updateControls(delta: number) {
+		if (this.keyboard) {
+			this.inputVelocity.set(0, 0, 0);
 
-		if (this.grounded && this.keyboard) {
-			if (this.keyboard.keyMap["KeyW"]) {
-				this.inputVelocity.z = -1;
-			}
-			if (this.keyboard.keyMap["KeyS"]) {
-				this.inputVelocity.z = 1;
-			}
-			if (this.keyboard.keyMap["KeyA"]) {
-				this.inputVelocity.x = -1;
-			}
-			if (this.keyboard.keyMap["KeyD"]) {
-				this.inputVelocity.x = 1;
-			}
-			this.inputVelocity.setLength(delta * this.animationController.speed || 1); // limit horizontal movement based on walking or running speed
-
-			if (!this.wait && this.keyboard.keyMap["Space"]) {
-				this.wait = true;
-				if (this.body) this.body.setLinearDamping(0);
-				if (this.keyboard.keyMap["ShiftLeft"]) {
-					this.inputVelocity.multiplyScalar(15); // if running, add more boost
-				} else {
-					this.inputVelocity.multiplyScalar(10);
+			if (this.grounded) {
+				if (this.keyboard.keyMap["KeyW"]) {
+					this.inputVelocity.z = -1;
 				}
-				this.inputVelocity.y = 5; //give jumping some height
-				this.grounded = false;
-			}
-		}
+				if (this.keyboard.keyMap["KeyS"]) {
+					this.inputVelocity.z = 1;
+				}
+				if (this.keyboard.keyMap["KeyA"]) {
+					this.inputVelocity.x = -1;
+				}
+				if (this.keyboard.keyMap["KeyD"]) {
+					this.inputVelocity.x = 1;
+				}
+				this.inputVelocity.setLength(delta * this.animationController.speed || 1); // limit horizontal movement based on walking or running speed
 
-		// apply the followCam yaw to inputVelocity so the capsule moves forward based on cameras forward direction
-		euler.y = this.followCamYaw; //this.followCam.yaw.rotation.y;
-		quaternion.setFromEuler(euler);
-		this.inputVelocity.applyQuaternion(quaternion);
+				if (!this.wait && this.keyboard.keyMap["Space"]) {
+					this.wait = true;
+					if (this.body) this.body.setLinearDamping(0);
+					if (this.keyboard.keyMap["ShiftLeft"]) {
+						this.inputVelocity.multiplyScalar(15); // if running, add more boost
+					} else {
+						this.inputVelocity.multiplyScalar(10);
+					}
+					this.inputVelocity.y = 5; //give jumping some height
+					this.grounded = false;
+				}
+			}
+
+			// apply the followCam yaw to inputVelocity so the capsule moves forward based on cameras forward direction
+			euler.y = this.followCamYaw; //this.followCam.yaw.rotation.y;
+			quaternion.setFromEuler(euler);
+			this.inputVelocity.applyQuaternion(quaternion);
+		}
 
 		if (this.body) {
 			// now move the capsule body based on inputVelocity
@@ -116,7 +116,8 @@ export default abstract class Character extends Entity {
 		}
 
 		// update which animationAction Eve should be playing
-		this.animationController.update();
+		const speed = this.body ? new Vector3(this.body.linvel().x, this.body.linvel().y, this.body.linvel().z).length() : 0;
+		this.animationController.update(speed);
 
 		// update the Eve models animation mixer
 		this.object.update(delta);

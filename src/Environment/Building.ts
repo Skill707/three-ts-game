@@ -11,7 +11,7 @@ export class Building {
 	wallWidth = 0.25;
 	floorWidth = 0.25;
 	type: BuildingType;
-	parts: BuildingPart[] = [];
+	parts: Entity[] = [];
 	position: Vector3 = new Vector3();
 	rotation: Quaternion = new Quaternion();
 
@@ -52,14 +52,16 @@ export class Building {
 		);
 
 		const walls = [
-			new Wall(new Vector3(0, y / 2, z / 2 - w / 2).add(this.position), new Quaternion(), new Vector3(x, y, w)), // front
-			new Wall(new Vector3(0, y / 2, -z / 2 + w / 2).add(this.position), new Quaternion(), new Vector3(x, y, w)), // back
+			new Wall("", new Vector3(0, y / 2, z / 2 - w / 2).add(this.position), new Quaternion(), new Vector3(x, y, w)), // front
+			new Wall("0", new Vector3(0, y / 2, -z / 2 + w / 2).add(this.position), new Quaternion(), new Vector3(x, y, w)), // back
 			new Wall(
+				"0",
 				new Vector3(-x / 2 + w / 2, y / 2, 0).add(this.position),
 				new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), -Math.PI / 2),
 				new Vector3(z, y, w)
 			),
 			new Wall(
+				"0",
 				new Vector3(x / 2 - w / 2, y / 2, 0).add(this.position),
 				new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2),
 				new Vector3(z, y, w)
@@ -67,6 +69,7 @@ export class Building {
 		];
 
 		const roof = new Wall(
+			"0",
 			this.position.add(new Vector3(0, y - this.floorWidth / 2, 0)),
 			new Quaternion(),
 			new Vector3(x - w * 2, this.floorWidth, z - w * 2)
@@ -76,16 +79,9 @@ export class Building {
 	}
 }
 
-abstract class BuildingPart extends Entity {
-	constructor() {
-		super("buildingPart");
-	}
-	update(_delta: number): void {}
-}
-
-export class FirstFloor extends BuildingPart {
+export class FirstFloor extends Entity {
 	constructor(position: Vector3 = new Vector3(), rotation = new Quaternion(), size: Vector3) {
-		super();
+		super("floor", true);
 		this.bodyDesc = RigidBodyDesc.fixed()
 			.setTranslation(...position.toArray())
 			.setRotation(rotation);
@@ -99,9 +95,10 @@ export class FirstFloor extends BuildingPart {
 	}
 }
 
-export class Wall extends BuildingPart {
-	constructor(position: Vector3 = new Vector3(), rotation = new Quaternion(), size: Vector3) {
-		super();
+export class Wall extends Entity {
+	constructor(id: string, position: Vector3 = new Vector3(), rotation = new Quaternion(), size: Vector3) {
+		super("wall", true);
+		this.ID = id;
 		this.bodyDesc = RigidBodyDesc.dynamic()
 			.setTranslation(...position.toArray())
 			.setRotation(rotation);
@@ -114,9 +111,9 @@ export class Wall extends BuildingPart {
 	}
 }
 
-export class WallWithWindow extends BuildingPart {
+export class WallWithWindow extends Entity {
 	constructor(position: Vector3 = new Vector3(), rotation = new Quaternion(), size: Vector3) {
-		super();
+		super("window", true);
 		this.bodyDesc = RigidBodyDesc.dynamic()
 			.setTranslation(...position.toArray())
 			.setRotation(rotation);

@@ -18,6 +18,27 @@
 			user-select: none;
 			text-align: center;
 		}
+		#pingStats {
+			position: absolute;
+			top: 60px;
+			left: 4px;
+			width: 400px;
+			height: 400px;
+			pointer-events: none;
+			color: white;
+			z-index: 1;
+		}
+
+		#ping {
+			position: absolute;
+			top: 40px;
+			left: 4px;
+			width: 400px;
+			height: 400px;
+			pointer-events: none;
+			color: white;
+			z-index: 1;
+		}
 		.canvas {
 			height: 100vh;
 			width: 100vw;
@@ -25,6 +46,8 @@
 		}
 	</style>
 	<body>
+		<div id="pingStats"></div>
+		<div id="ping"></div>
 		<h1 id="loading">Loading...</h1>
 		<script type="module" src="/src/main.ts"></script>
 	</body>

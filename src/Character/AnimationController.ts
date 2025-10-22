@@ -9,9 +9,9 @@ export default class AnimationController {
 	public speed = 0;
 	private keyboard: Keyboard | null = null;
 
-	constructor(keyboard: Keyboard | null, animationActions: ActionsGroup) {
-		this.keyboard = keyboard;
+	constructor(animationActions: ActionsGroup, keyboard: Keyboard | null) {
 		this.animationActions = animationActions;
+		this.keyboard = keyboard;
 		this.activeAction = this.animationActions["idle"];
 	}
 
@@ -40,7 +40,7 @@ export default class AnimationController {
 		}
 	}
 
-	update() {
+	update(speed: number) {
 		if (!this.wait && this.keyboard) {
 			let actionAssigned = false;
 
@@ -84,6 +84,14 @@ export default class AnimationController {
 			}
 
 			!actionAssigned && this.setAction(this.animationActions["idle"]);
+		} else {
+			if (speed > 1) {
+				this.setAction(this.animationActions["run"]);
+			} else if (speed > 0.1) {
+				this.setAction(this.animationActions["walk"]);
+			} else {
+				this.setAction(this.animationActions["idle"]);
+			}
 		}
 	}
 }

@@ -1,56 +1,49 @@
-import { Object3D } from "three";
+import { Object3D, Quaternion, Vector3, type QuaternionTuple, type Vector3Tuple } from "three";
 import { RigidBody, ColliderDesc, RigidBodyDesc, Collider } from "@dimforge/rapier3d";
 import { Socket } from "socket.io-client";
-import type { PlayerState } from "./shared";
-import type { EntityTypes } from "./types";
-
-export interface EntityState {
-	ID: string;
-	position: [number, number, number];
-	rotation: [number, number, number, number];
-	velocity?: [number, number, number];
-}
+import { EntityState, type EntityTypes, type PlayerState } from "./shared";
 
 export abstract class Entity {
 	ID: string;
+	name: string = "Entity";
 	bodyDesc: RigidBodyDesc;
 	colliderDesc: ColliderDesc;
 	object: Object3D = new Object3D();
 	HP: number = 100;
 	body: RigidBody | null = null;
 	collider: Collider | null = null;
-	socket: Socket | null = null;
 	type: EntityTypes;
+	bodyRotationEnabled: boolean;
+	networkPosition: Vector3 = new Vector3();
+	networkRotation: Quaternion = new Quaternion();
 
-	constructor(type: EntityTypes) {
+	constructor(type: EntityTypes, bodyRotationEnabled: boolean) {
 		this.type = type;
-		this.ID = crypto.randomUUID();
-
-		// физическая часть
+		this.ID = "none";
 		this.bodyDesc = RigidBodyDesc.dynamic().setTranslation(0, 5, 0);
 		this.colliderDesc = ColliderDesc.cuboid(1, 1, 1);
-
-		// при наличии сети — подписка на обновления
-		if (this.socket) {
-			this.socket.on("entity-update", (data: EntityState) => {
-				if (data.ID === this.ID) this.applyNetworkState(data);
-			});
-		}
+		this.bodyRotationEnabled = bodyRotationEnabled;
 	}
 
-	public updateFromState(state: PlayerState): void {
-		//this.targetPosition.set(state.position.x, state.position.y, state.position.z);
-		//this.targetRotation = state.rotation.y;
+	public updateFromState(state: EntityState): void {
+		this.networkPosition = new Vector3().fromArray(state.position);
+		this.networkRotation = new Quaternion().fromArray(state.rotation);
+	}
 
-		// For local player, we might want to apply server corrections
+	public updateBodyFromNetwork(): void {
 		if (this.body) {
-			const currentPos = this.body.translation();
-			const distance = Math.sqrt(Math.pow(currentPos.x - state.position.x, 2) + Math.pow(currentPos.z - state.position.z, 2));
+			const posDelta = this.networkPosition.clone().sub(this.body.translation());
+			if (posDelta.length() > 0.1) {
+				this.body.applyImpulse(posDelta.multiplyScalar(0.1), true);
+			}
 
-			// If we're too far from server position, snap to it (server reconciliation)
-			if (distance > 2) {
-				this.body.setTranslation(state.position, true);
-				console.log("Server correction applied");
+			if (this.bodyRotationEnabled) {
+				const bodyQuaternion = new Quaternion(this.body.rotation().x, this.body.rotation().y, this.body.rotation().z, this.body.rotation().w);
+				const rotDelta = this.networkRotation.clone().invert().multiply(bodyQuaternion);
+				const vector = new Vector3(rotDelta.x, rotDelta.y, rotDelta.z);
+				this.body.addTorque(vector, true);
+			} else {
+				this.object.quaternion.slerp(this.networkRotation, 0.1);
 			}
 		}
 	}
@@ -61,29 +54,23 @@ export abstract class Entity {
 		const t = this.body.translation();
 		const r = this.body.rotation();
 		this.object.position.set(t.x, t.y, t.z);
-		if (this.type !== "player") this.object.quaternion.set(r.x, r.y, r.z, r.w);
+		if (this.bodyRotationEnabled) this.object.quaternion.set(r.x, r.y, r.z, r.w);
 	}
 
 	// === синхронизация по сети ===
-	sendNetworkState() {
-		if (!this.socket || !this.body) return;
+	sendNetworkState(socket: Socket) {
+		if (!socket || !this.body || !this.object) return;
 		const t = this.body.translation();
-		const r = this.body.rotation();
-		this.socket.emit("entity-update", {
-			ID: this.ID,
+		let r: any;
+		if (this.bodyRotationEnabled) r = this.body.rotation();
+		else r = this.object.quaternion;
+
+		socket.emit("entity-update", {
 			position: [t.x, t.y, t.z],
 			rotation: [r.x, r.y, r.z, r.w],
-		} as EntityState);
-	}
-
-	applyNetworkState(_state: EntityState) {
-		/*this.position.fromArray(state.position);
-		this.quaternion.fromArray(state.rotation);
-		this.body.setTranslation(this.position, false);
-		this.body.setRotation(this.quaternion, false);*/
-	}
-
-	update(delta: number) {
-		console.log("Entity class update", delta);
+		} as {
+			position: Vector3Tuple;
+			rotation: QuaternionTuple;
+		});
 	}
 }

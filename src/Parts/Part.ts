@@ -2,6 +2,7 @@ import { BoxGeometry, ConeGeometry, Group, Mesh, MeshBasicMaterial, Object3D,  S
 import type Craft from "../Vehicle/Craft";
 import { Collider, ColliderDesc, RigidBodyDesc, type RigidBody } from "@dimforge/rapier3d";
 import AttachPoint from "./AttachPoint";
+import { Entity } from "../Entity";
 
 type PartType = "block" | "cone" | "sphere";
 
@@ -18,18 +19,13 @@ interface AttachPoints extends Group {
 	children: AttachPoint[];
 }
 
-
-
-export class Part extends Object3D {
+export class Part extends Entity {
 	partType: PartType;
 	craft: Craft | null = null;
-	body: RigidBody | null = null;
-	collider: Collider | null = null;
-	mesh: Mesh | null = null;
 	attachPoints: AttachPoints = new Group() as AttachPoints;
 
 	constructor(partType: PartType) {
-		super();
+		super("part", true);
 		this.partType = partType;
 		this.name = partType + this.id;
 		this.attachPoints.name = "attachPoints";
