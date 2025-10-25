@@ -66,7 +66,7 @@ export default abstract class Character extends Entity {
 				if (this.keyboard.keyMap["KeyD"]) {
 					this.inputVelocity.x = 1;
 				}
-				this.inputVelocity.setLength(delta * this.animationController.speed || 1); // limit horizontal movement based on walking or running speed
+				this.inputVelocity.setLength(delta * 5); // limit horizontal movement based on walking or running speed
 
 				if (!this.wait && this.keyboard.keyMap["Space"]) {
 					this.wait = true;
@@ -78,6 +78,8 @@ export default abstract class Character extends Entity {
 					}
 					this.inputVelocity.y = 5; //give jumping some height
 					this.grounded = false;
+				} else if (this.keyboard.keyMap["ShiftLeft"]) {
+					this.inputVelocity.multiplyScalar(5);
 				}
 			}
 
@@ -116,7 +118,7 @@ export default abstract class Character extends Entity {
 		}
 
 		// update which animationAction Eve should be playing
-		const speed = this.body ? new Vector3(this.body.linvel().x, this.body.linvel().y, this.body.linvel().z).length() : 0;
+		const speed = this.body ? new Vector3(this.body.linvel().x, this.body.linvel().y, this.body.linvel().z) : new Vector3();
 		this.animationController.update(speed);
 
 		// update the Eve models animation mixer

@@ -1,28 +1,31 @@
 import { type QuaternionTuple, type Vector3Tuple } from "three";
 
-export type EntityTypes = "wall" | "window" | "door" | "player" | "npc" | "floor" | "part";
+export type EntityTypes = "wall" | "window" | "door" | "player" | "npc" | "floor" | "block" | "cone" | "sphere";
 
 export interface EntityStateParameters {
 	type: EntityTypes;
 	ID?: string;
-	name?: string;
 	position?: Vector3Tuple;
 	rotation?: QuaternionTuple;
+	velocity?: Vector3Tuple;
+	angVelocity?: Vector3Tuple;
 }
 
 export class EntityState {
 	readonly ID: string;
-	name: string;
 	type: EntityTypes;
 	position: Vector3Tuple;
 	rotation: QuaternionTuple;
+	velocity: Vector3Tuple;
+	angVelocity: Vector3Tuple;
 
 	constructor(parameters: EntityStateParameters) {
 		this.type = parameters.type;
 		this.ID = parameters.ID || crypto.randomUUID();
-		this.name = parameters.name || parameters.type;
 		this.position = parameters.position || [0, 0, 0];
 		this.rotation = parameters.rotation || [0, 0, 0, 1];
+		this.velocity = parameters.velocity || [0, 0, 0];
+		this.angVelocity = parameters.angVelocity || [0, 0, 0];
 	}
 }
 

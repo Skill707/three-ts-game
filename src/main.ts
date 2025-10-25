@@ -2,7 +2,7 @@ import { ResourceLoader } from "./ResourceLoader";
 import { BufferAttribute, BufferGeometry, Clock, LineBasicMaterial, LineSegments, Quaternion, Vector3 } from "three";
 import initScene from "./SceneInit";
 import { EventQueue, JointData, RigidBody, World } from "@dimforge/rapier3d";
-import { Wall } from "./Environment/Building";
+import { Wall, WallWithWindow } from "./Environment/Building";
 import Keyboard from "./Keyboard";
 import FollowCam from "./Character/FollowCam";
 import { Entity } from "./Entity";
@@ -14,6 +14,7 @@ import { NPC } from "./Character/NPC";
 import type { EntityState, GameState, PlayerState } from "./shared";
 import { LocalPlayer } from "./Character/LocalPlayer";
 import Character from "./Character/Character";
+import { Part } from "./Parts/Part";
 
 const loading = document.getElementById("loading");
 export const resources = new ResourceLoader();
@@ -105,10 +106,12 @@ function addEntity(entityOrArray: Entity | Entity[] | undefined) {
 	const list = Array.isArray(entityOrArray) ? entityOrArray : [entityOrArray];
 
 	for (const entity of list) {
-		entity.body = world.createRigidBody(entity.bodyDesc);
-		entity.collider = world.createCollider(entity.colliderDesc, entity.body);
+		if (entity.bodyDesc && entity.colliderDesc) {
+			entity.body = world.createRigidBody(entity.bodyDesc);
+			entity.collider = world.createCollider(entity.colliderDesc, entity.body);
+			entities.set(entity.ID, entity);
+		}
 		scene.add(entity.object);
-		entities.set(entity.ID, entity);
 	}
 }
 
@@ -118,8 +121,8 @@ function createEntityFromState(entityState: EntityState) {
 	switch (entityState.type) {
 		case "player":
 			let player;
-			if (entityState.ID !== network.getSocketId()) player = new Player(entityState.ID, position, entityState.name);
-			else player = new LocalPlayer(entityState.ID, position, entityState.name, keyboard);
+			if (entityState.ID !== network.getSocketId()) player = new Player(entityState.ID, position, entityState.ID);
+			else player = new LocalPlayer(entityState.ID, position, entityState.ID, keyboard);
 			return player;
 		case "npc":
 			const npc = new NPC(entityState.ID, position);
@@ -127,6 +130,14 @@ function createEntityFromState(entityState: EntityState) {
 		case "wall":
 			const wall = new Wall(entityState.ID, position, rotation, new Vector3(0.25, 4, 10));
 			return wall;
+		case "window":
+			const windowWall = new WallWithWindow(position, rotation, new Vector3(0.25, 4, 10));
+			return windowWall;
+		case "block":
+		case "cone":
+		case "sphere":
+			const part = new Part(entityState.ID, position, rotation, entityState.type);
+			return part;
 		default:
 			break;
 	}
@@ -145,10 +156,11 @@ network.on("gameState", (data: GameState) => {
 				if (entity instanceof LocalPlayer) {
 				} else {
 					entity.updateFromState(entityState);
-					if (entity.body) {
-						const posDelta = entity.networkPosition.clone().sub(entity.body.translation());
-						//console.log(entity.type, posDelta);
-					}
+				}
+
+				if (network.isHost) {
+					if (entity instanceof Part) entity.sendNetworkState(network.socket);
+				} else {
 				}
 			}
 		} else {
@@ -168,7 +180,11 @@ network.on("gameState", (data: GameState) => {
 	let pingStatsHtml = "Socket Ping Stats<br/><br/>";
 	let timestamp = Date.now(); //performance.now();
 	data.players.forEach((player) => {
-		pingStatsHtml += player.nick + " " + (timestamp - player.timestamp) + "ms<br/>";
+		pingStatsHtml += player.nick + " " + (timestamp - player.timestamp) + "ms " + (player.isHost ? "HOST" : "") + "<br/>";
+		if (player.id === network.getSocketId()) {
+			if (player.isHost) network.isHost = true;
+			else network.isHost = false;
+		}
 	});
 	(document.getElementById("pingStats") as HTMLDivElement).innerHTML = pingStatsHtml;
 
@@ -179,7 +195,6 @@ network.on("gameState", (data: GameState) => {
 			localPlayer.sendNetworkState(network.socket);
 		}
 	}
-
 });
 
 /*for (let i = 1; i < ff.parts.length; i++) {
@@ -232,6 +247,7 @@ const gameLoop = () => {
 		entity.updateFromPhysics();
 		if (entity instanceof Character) (entity as Character).updateControls(delta);
 		if (entity instanceof Player) entity.updateBodyFromNetwork();
+		if (entity instanceof Part && !network.isHost) entity.updateBodyFromNetwork();
 	});
 
 	//orbitControls.update();

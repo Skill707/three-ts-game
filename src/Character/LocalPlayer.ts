@@ -4,15 +4,10 @@ import type Keyboard from "../Keyboard";
 
 export class LocalPlayer extends Character {
 	public name: string;
-	isHost: boolean = false;
 	constructor(id: string, position: Vector3 = new Vector3(), nickname: string, keyboard: Keyboard ) {
 		super("player", position, keyboard);
 		this.ID = id;
 		this.name = nickname || "LocalPlayer";
 		this.object.name = "LocalPlayer " + nickname;
-	}
-
-	setHost() {
-		this.isHost = true;
 	}
 }

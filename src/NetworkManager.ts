@@ -88,7 +88,7 @@ export class NetworkManager {
 		this.pingInterval = setInterval(() => {
 			this.lastPingTime = performance.now();
 			this.socket.emit("ping", Date.now());
-		}, 100);
+		}, 1);
 	}
 
 	private stopPingInterval(): void {

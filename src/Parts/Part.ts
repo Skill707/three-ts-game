@@ -1,8 +1,19 @@
-import { BoxGeometry, ConeGeometry, Group, Mesh, MeshBasicMaterial, Object3D,  SphereGeometry, Vector3, type EulerTuple } from "three";
-import type Craft from "../Vehicle/Craft";
-import { Collider, ColliderDesc, RigidBodyDesc, type RigidBody } from "@dimforge/rapier3d";
+import {
+	BoxGeometry,
+	ConeGeometry,
+	Group,
+	Mesh,
+	MeshBasicMaterial,
+	Quaternion,
+	SphereGeometry,
+	Vector3,
+	type EulerTuple,
+	type QuaternionTuple,
+	type Vector3Tuple,
+} from "three";
 import AttachPoint from "./AttachPoint";
 import { Entity } from "../Entity";
+import { ColliderDesc, RigidBodyDesc } from "@dimforge/rapier3d";
 
 type PartType = "block" | "cone" | "sphere";
 
@@ -20,14 +31,34 @@ interface AttachPoints extends Group {
 }
 
 export class Part extends Entity {
-	partType: PartType;
-	craft: Craft | null = null;
+	//craft: Craft | null = null;
 	attachPoints: AttachPoints = new Group() as AttachPoints;
 
-	constructor(partType: PartType) {
-		super("part", true);
-		this.partType = partType;
-		this.name = partType + this.id;
+	constructor(
+		id: string,
+		position: Vector3 | Vector3Tuple = new Vector3(),
+		rotation: Quaternion | QuaternionTuple = new Quaternion(),
+		partType: PartType,
+		visual = false
+	) {
+		super(partType, true);
+		this.ID = id;
+		position = new Vector3(...position);
+		rotation = new Quaternion(...rotation);
+
+		if (!visual) {
+			this.bodyDesc = RigidBodyDesc.dynamic()
+				.setTranslation(...position.toArray())
+				.setRotation(rotation);
+
+			if (partType === "block") {
+				this.colliderDesc = ColliderDesc.cuboid(0.25, 0.25, 0.25);
+			} else if (partType === "cone") {
+				this.colliderDesc = ColliderDesc.cone(0.25, 0.25);
+			} else if (partType === "sphere") {
+				this.colliderDesc = ColliderDesc.ball(0.25);
+			}
+		}
 		this.attachPoints.name = "attachPoints";
 
 		let geometry;
@@ -56,71 +87,18 @@ export class Part extends Entity {
 			);
 		}
 		const material = new MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
-		this.mesh = new Mesh(geometry, material);
-		this.mesh.name = partType;
-		this.mesh.layers.enable(10);
-		this.add(this.mesh);
-		this.add(this.attachPoints);
+		this.object = new Mesh(geometry, material);
+		this.object.name = partType;
+		this.object.position.copy(position);
+		this.object.quaternion.copy(rotation);
+		//this.object.layers.enable(10);
+
+		this.object.add(this.attachPoints);
 	}
 
-	addPhysics() {
-		this.body = world.createRigidBody(RigidBodyDesc.dynamic());
+	deleteBody() {}
 
-		const position: Vector3 = new Vector3();
-		this.getWorldPosition(position);
-		this.body.setTranslation(position, false);
-		let colliderDesc: ColliderDesc | null;
-
-		if (this.partType === "block") {
-			colliderDesc = ColliderDesc.cuboid(0.25, 0.25, 0.25);
-		} else if (this.partType === "cone") {
-			colliderDesc = ColliderDesc.cone(0.25, 0.25);
-		} else if (this.partType === "sphere") {
-			colliderDesc = ColliderDesc.ball(0.25);
-		} else {
-			colliderDesc = null;
-		}
-
-		if (colliderDesc) {
-			colliderDesc.setMass(1); //.setTranslation(...this.position.toArray())
-			this.collider = world.createCollider(colliderDesc, this.body);
-		}
-
-		this.body.userData = this;
-	}
-
-	deleteBody() {
-		if (this.body) {
-			world.removeRigidBody(this.body);
-		}
-		//this.removeFromParent();
-	}
-
-	showAttachPoints() {
-		this.add(this.attachPoints);
-	}
-
-	hideAttachPoints() {
-		this.remove(this.attachPoints);
-	}
-
-	attachPart(part: Part, A: AttachPoint, B: AttachPoint) {
-		/*if (this.collider && part.collider) {
-			this.collider.setCollisionGroups(131073);
-			part.collider.setCollisionGroups(131073);
-		}*/
-		if (this.body && part.body) {
-			const anchor1 = A.position;
-			const anchor2 = B.position;
-			const joint = fixedJoint(part.body, this.body, anchor1, anchor2);
-			A.use(joint);
-			B.use(joint);
-			/*this.body.setAngvel(new Vector3(), false);
-			part.body.setAngvel(new Vector3(), false);
-			this.body.setLinvel(new Vector3(), false);
-			part.body.setLinvel(new Vector3(), false);*/
-		}
-	}
+	attachPart(part: Part, A: AttachPoint, B: AttachPoint) {}
 
 	detach() {
 		this.attachPoints.children.forEach((child) => child.unuse());

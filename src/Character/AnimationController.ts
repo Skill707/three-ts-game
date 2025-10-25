@@ -1,4 +1,4 @@
-import type { AnimationAction } from "three";
+import type { AnimationAction, Vector3 } from "three";
 import type Keyboard from "../Keyboard";
 import type { ActionsGroup } from "../types";
 
@@ -40,8 +40,8 @@ export default class AnimationController {
 		}
 	}
 
-	update(speed: number) {
-		if (!this.wait && this.keyboard) {
+	update(speed: Vector3) {
+		/*if (!this.wait && this.keyboard) {
 			let actionAssigned = false;
 
 			if (this.keyboard.keyMap["Space"]) {
@@ -85,13 +85,15 @@ export default class AnimationController {
 
 			!actionAssigned && this.setAction(this.animationActions["idle"]);
 		} else {
-			if (speed > 1) {
-				this.setAction(this.animationActions["run"]);
-			} else if (speed > 0.1) {
-				this.setAction(this.animationActions["walk"]);
-			} else {
-				this.setAction(this.animationActions["idle"]);
-			}
+		}*/
+		if (speed.y > 0.1) {
+			this.setAction(this.animationActions["jump"]);
+		} else if (speed.length() > 3) {
+			this.setAction(this.animationActions["run"]);
+		} else if (speed.length() > 0.1) {
+			this.setAction(this.animationActions["walk"]);
+		} else {
+			this.setAction(this.animationActions["idle"]);
 		}
 	}
 }

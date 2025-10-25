@@ -6,8 +6,8 @@ import { EntityState, type EntityTypes, type PlayerState } from "./shared";
 export abstract class Entity {
 	ID: string;
 	name: string = "Entity";
-	bodyDesc: RigidBodyDesc;
-	colliderDesc: ColliderDesc;
+	bodyDesc: RigidBodyDesc | null = null;
+	colliderDesc: ColliderDesc | null = null;
 	object: Object3D = new Object3D();
 	HP: number = 100;
 	body: RigidBody | null = null;
@@ -20,8 +20,6 @@ export abstract class Entity {
 	constructor(type: EntityTypes, bodyRotationEnabled: boolean) {
 		this.type = type;
 		this.ID = "none";
-		this.bodyDesc = RigidBodyDesc.dynamic().setTranslation(0, 5, 0);
-		this.colliderDesc = ColliderDesc.cuboid(1, 1, 1);
 		this.bodyRotationEnabled = bodyRotationEnabled;
 	}
 
@@ -33,15 +31,17 @@ export abstract class Entity {
 	public updateBodyFromNetwork(): void {
 		if (this.body) {
 			const posDelta = this.networkPosition.clone().sub(this.body.translation());
-			if (posDelta.length() > 0.1) {
-				this.body.applyImpulse(posDelta.multiplyScalar(0.1), true);
+			if (posDelta.length() > 1) {
+				this.body.setTranslation(this.networkPosition, true);
+			} else if (posDelta.length() > 0.01) {
+				this.body.applyImpulse(posDelta.multiplyScalar(1), true);
 			}
 
 			if (this.bodyRotationEnabled) {
 				const bodyQuaternion = new Quaternion(this.body.rotation().x, this.body.rotation().y, this.body.rotation().z, this.body.rotation().w);
 				const rotDelta = this.networkRotation.clone().invert().multiply(bodyQuaternion);
 				const vector = new Vector3(rotDelta.x, rotDelta.y, rotDelta.z);
-				this.body.addTorque(vector, true);
+				//this.body.addTorque(vector, true);
 			} else {
 				this.object.quaternion.slerp(this.networkRotation, 0.1);
 			}
@@ -64,13 +64,19 @@ export abstract class Entity {
 		let r: any;
 		if (this.bodyRotationEnabled) r = this.body.rotation();
 		else r = this.object.quaternion;
+		let v = this.body.linvel();
+		let w = this.body.angvel();
 
-		socket.emit("entity-update", {
-			position: [t.x, t.y, t.z],
-			rotation: [r.x, r.y, r.z, r.w],
-		} as {
-			position: Vector3Tuple;
-			rotation: QuaternionTuple;
-		});
+		socket.emit(
+			"entity-update",
+			new EntityState({
+				type: this.type,
+				ID: this.ID,
+				position: [t.x, t.y, t.z],
+				rotation: [r.x, r.y, r.z, r.w],
+				velocity: [v.x, v.y, v.z],
+				angVelocity: [w.x, w.y, w.z],
+			})
+		);
 	}
 }
